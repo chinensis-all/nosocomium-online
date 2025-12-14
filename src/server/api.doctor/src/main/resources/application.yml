@@ -1,8 +1,0 @@
-server:
-  port: 8083
-
-spring:
-  application:
-    name: api-doctor
-  datasource:
-    password: ${DB_PASSWORD:password}
