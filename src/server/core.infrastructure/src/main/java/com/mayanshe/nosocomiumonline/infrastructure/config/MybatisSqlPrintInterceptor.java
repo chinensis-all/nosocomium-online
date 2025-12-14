@@ -13,6 +13,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * MybatisSqlPrintInterceptor: MyBatis SQL 打印拦截器
+ */
 @Intercepts({
         @Signature(type = Executor.class, method = "query", args = {
                 MappedStatement.class, Object.class, org.apache.ibatis.session.RowBounds.class,
