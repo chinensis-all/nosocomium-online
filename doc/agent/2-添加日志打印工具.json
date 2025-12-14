@@ -1,0 +1,52 @@
+{
+    "name": "print-utils-generator",
+    "displayName": "PrintUtils Generator",
+    "description": "生成仅在非生产环境生效的 PrintUtils 调试工具，支持控制台彩色输出与耗时计算",
+    "version": "1.0.0",
+    "tool": "antigravity",
+    "language": "java",
+    "scope": {
+        "type": "filesystem",
+        "root": "src/core.shared/utils"
+    },
+    "constraints": {
+        "environment": {
+            "disabledProfiles": [
+                "prod",
+                "production"
+            ]
+        },
+        "performance": {
+            "prodZeroCost": true
+        }
+    },
+    "capabilities": [
+        "create-file",
+        "overwrite-file"
+    ],
+    "files": [
+        {
+            "path": "AnsiColor.java",
+            "type": "java",
+            "content": "package core.shared.utils;\n\npublic final class AnsiColor {\n\n    private AnsiColor() {}\n\n    public static final String RESET = \"\\u001B[0m\";\n    public static final String GREEN = \"\\u001B[32m\";\n    public static final String RED   = \"\\u001B[31m\";\n\n    public static String green(String text) {\n        return GREEN + text + RESET;\n    }\n\n    public static String red(String text) {\n        return RED + text + RESET;\n    }\n}\n"
+        },
+        {
+            "path": "PrintUtils.java",
+            "type": "java",
+            "content": "package core.shared.utils;\n\nimport com.fasterxml.jackson.databind.ObjectMapper;\nimport java.time.LocalDateTime;\n\npublic final class PrintUtils {\n\n    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();\n    private static final long COST_THRESHOLD_MS = 50;\n    private static final boolean IS_PROD = isProdEnv();\n\n    private PrintUtils() {}\n\n    /* =========================\n       Public API\n       ========================= */\n\n    /**\n     * 普通打印（无耗时）\n     */\n    public static void print(String template, Object obj) {\n        if (IS_PROD) {\n            return;\n        }\n        String message = format(template, obj);\n        System.out.println(prefix() + message);\n    }\n\n    /**\n     * 带耗时的打印（控制台彩色）\n     */\n    public static void print(String template, Object obj, long startMillis) {\n        if (IS_PROD) {\n            return;\n        }\n        long cost = System.currentTimeMillis() - startMillis;\n        String message = format(template, obj) + \" | cost=\" + cost + \"ms\";\n\n        if (cost > COST_THRESHOLD_MS) {\n            System.out.println(AnsiColor.red(prefix() + message));\n        } else {\n            System.out.println(AnsiColor.green(prefix() + message));\n        }\n    }\n\n    /* =========================\n       Internal helpers\n       ========================= */\n\n    private static String format(String template, Object obj) {\n        String value;\n        try {\n            value = OBJECT_MAPPER.writeValueAsString(obj);\n        } catch (Exception e) {\n            value = String.valueOf(obj);\n        }\n        return template.replace(\"{}\", value);\n    }\n\n    private static String prefix() {\n        return \"[PrintUtils \" + LocalDateTime.now() + \"] \";\n    }\n\n    private static boolean isProdEnv() {\n        String profile = System.getProperty(\"spring.profiles.active\");\n        if (profile == null || profile.isBlank()) {\n            profile = System.getenv(\"SPRING_PROFILES_ACTIVE\");\n        }\n        return profile != null && profile.toLowerCase().contains(\"prod\");\n    }\n}\n"
+        }
+    ],
+    "usage": {
+        "examples": [
+            "PrintUtils.print(\"内容{}\", obj);",
+            "long start = System.currentTimeMillis();\n// do something\nPrintUtils.print(\"结果{}\", result, start);"
+        ]
+    },
+    "philosophy": [
+        "仅用于非生产环境调试",
+        "不侵入日志系统",
+        "性能问题可视化",
+        "开发者友好",
+        "请全程用中文和我交互"
+    ]
+}
