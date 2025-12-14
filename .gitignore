@@ -26,6 +26,10 @@ hs_err_pid*
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
+application-dev.xml
+application-test.xml
+application-prod.xml
+application-local.xml
 
 # Gradle
 .gradle/
