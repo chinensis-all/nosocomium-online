@@ -1,0 +1,53 @@
+{
+  "name": "mybatis-sql-print-interceptor",
+  "displayName": "MyBatis SQL Print Interceptor",
+  "description": "在非 prod 环境下拦截 MyBatis SQL，打印带参数的完整 SQL 及执行耗时",
+  "version": "1.0.0",
+  "tool": "antigravity",
+  "language": "java",
+  "scope": {
+    "type": "filesystem",
+    "roots": [
+      "src/core.infrastructure/config",
+      "src/core.shared/utils"
+    ]
+  },
+  "constraints": {
+    "environment": {
+      "disabledProfiles": ["prod", "production"]
+    },
+    "performance": {
+      "prodZeroCost": true
+    }
+  },
+  "capabilities": [
+    "create-file",
+    "overwrite-file"
+  ],
+  "files": [
+    {
+      "path": "src/core.shared/utils/PrintUtils.java",
+      "type": "java",
+      "mode": "merge",
+      "content": "// === Antigravity Patch: SQL Print Support ===\n\n    /**\n     * 带自定义耗时阈值的打印\n     */\n    public static void print(String template, Object obj, long startMillis, long limits) {\n        if (IS_PROD) {\n            return;\n        }\n        long cost = System.currentTimeMillis() - startMillis;\n        String message = template.replace(\"{}\", String.valueOf(obj))\n                + \" \" + cost + \"ms\";\n\n        if (cost > limits) {\n            System.out.println(AnsiColor.red(prefix() + message));\n        } else {\n            System.out.println(AnsiColor.green(prefix() + message));\n        }\n    }\n"
+    },
+    {
+      "path": "src/core.infrastructure/config/MybatisSqlPrintInterceptor.java",
+      "type": "java",
+      "content": "package core.infrastructure.config;\n\nimport core.shared.utils.PrintUtils;\nimport org.apache.ibatis.executor.Executor;\nimport org.apache.ibatis.mapping.BoundSql;\nimport org.apache.ibatis.mapping.MappedStatement;\nimport org.apache.ibatis.mapping.ParameterMapping;\nimport org.apache.ibatis.plugin.*;\nimport org.apache.ibatis.session.Configuration;\n\nimport java.text.SimpleDateFormat;\nimport java.util.Date;\nimport java.util.List;\nimport java.util.Properties;\n\n@Intercepts({\n    @Signature(type = Executor.class, method = \"query\", args = {\n        MappedStatement.class, Object.class, org.apache.ibatis.session.RowBounds.class,\n        org.apache.ibatis.session.ResultHandler.class\n    }),\n    @Signature(type = Executor.class, method = \"update\", args = {\n        MappedStatement.class, Object.class\n    })\n})\npublic class MybatisSqlPrintInterceptor implements Interceptor {\n\n    private static final long DEFAULT_LIMIT_MS = 15;\n\n    @Override\n    public Object intercept(Invocation invocation) throws Throwable {\n        long start = System.currentTimeMillis();\n\n        Object result = invocation.proceed();\n\n        long end = System.currentTimeMillis();\n\n        try {\n            MappedStatement ms = (MappedStatement) invocation.getArgs()[0];\n            Object parameter = invocation.getArgs()[1];\n            BoundSql boundSql = ms.getBoundSql(parameter);\n            String sql = buildSql(ms.getConfiguration(), boundSql);\n\n            PrintUtils.print(\"SQL: {}\", sql, start, DEFAULT_LIMIT_MS);\n        } catch (Exception ignored) {\n        }\n\n        return result;\n    }\n\n    private String buildSql(Configuration configuration, BoundSql boundSql) {\n        String sql = boundSql.getSql().replaceAll(\"\\\\s+\", \" \");\n        List<ParameterMapping> mappings = boundSql.getParameterMappings();\n        Object parameterObject = boundSql.getParameterObject();\n\n        if (mappings == null || mappings.isEmpty()) {\n            return sql;\n        }\n\n        for (ParameterMapping mapping : mappings) {\n            Object value;\n            String property = mapping.getProperty();\n\n            if (boundSql.hasAdditionalParameter(property)) {\n                value = boundSql.getAdditionalParameter(property);\n            } else if (parameterObject == null) {\n                value = null;\n            } else if (configuration.getTypeHandlerRegistry().hasTypeHandler(parameterObject.getClass())) {\n                value = parameterObject;\n            } else {\n                value = org.apache.ibatis.reflection.MetaObject\n                        .forObject(parameterObject, configuration.getObjectFactory(),\n                                configuration.getObjectWrapperFactory(), configuration.getReflectorFactory())\n                        .getValue(property);\n            }\n\n            sql = sql.replaceFirst(\"\\\\?\", formatValue(value));\n        }\n\n        return sql;\n    }\n\n    private String formatValue(Object value) {\n        if (value == null) {\n            return \"null\";\n        }\n        if (value instanceof String) {\n            return \"'\" + value + \"'\";\n        }\n        if (value instanceof Date) {\n            return \"'\" + new SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\").format((Date) value) + \"'\";\n        }\n        return value.toString();\n    }\n\n    @Override\n    public Object plugin(Object target) {\n        return Plugin.wrap(target, this);\n    }\n\n    @Override\n    public void setProperties(Properties properties) {\n    }\n}\n"
+    }
+  ],
+  "usage": {
+    "notes": [
+      "仅在非 prod 环境注册该拦截器",
+      "SQL 默认 15ms 为慢查询阈值",
+      "打印 SQL 为完整可执行语句"
+    ]
+  },
+  "philosophy": [
+    "SQL 是最真实的性能证据",
+    "调试工具不应进入生产",
+    "慢 SQL 要一眼可见",
+    "请全程用中文和我沟通"
+  ]
+}

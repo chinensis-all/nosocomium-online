@@ -43,6 +43,23 @@ public final class PrintUtils {
         }
     }
 
+    /**
+     * 带自定义耗时阈值的打印
+     */
+    public static void print(String template, Object obj, long startMillis, long limits) {
+        if (IS_PROD) {
+            return;
+        }
+        long cost = System.currentTimeMillis() - startMillis;
+        String message = format(template, obj) + " | cost=" + cost + "ms";
+
+        if (cost > limits) {
+            System.out.println(AnsiColor.red(prefix() + message));
+        } else {
+            System.out.println(AnsiColor.green(prefix() + message));
+        }
+    }
+
     private static String format(String template, Object obj) {
         String value;
         try {
