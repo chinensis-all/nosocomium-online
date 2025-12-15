@@ -1,17 +1,17 @@
 package com.mayanshe.nosocomiumonline.shared.contract;
 
 /**
- * Contract for converting a Create Command to an Entity.
+ * 将 Create Command 转换为 Entity 的契约。
  *
- * @param <C> The content of the command (could be a DTO or Map).
- * @param <E> The Entity type.
+ * @param <C> 命令的内容（可以是 DTO 或 Map）。
+ * @param <E> 实体类型。
  */
 public interface ICreateCommandToEntity<C, E> {
     /**
-     * Converts a create command to an entity.
+     * 将创建命令转换为实体。
      *
-     * @param command The create command.
-     * @return The entity.
+     * @param command 创建命令。
+     * @return 实体。
      */
     E toEntity(C command);
 }

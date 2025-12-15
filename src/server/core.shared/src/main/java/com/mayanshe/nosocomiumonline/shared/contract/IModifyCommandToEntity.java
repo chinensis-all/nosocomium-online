@@ -1,17 +1,17 @@
 package com.mayanshe.nosocomiumonline.shared.contract;
 
 /**
- * Contract for converting a Modify Command to an Entity.
+ * 将 Modify Command 转换为 Entity 的契约。
  *
- * @param <M> The content of the command.
- * @param <E> The Entity type.
+ * @param <M> 命令的内容。
+ * @param <E> 实体类型。
  */
 public interface IModifyCommandToEntity<M, E> {
     /**
-     * Updates an existing entity from a modify command.
+     * 根据修改命令更新现有实体。
      *
-     * @param command The modify command.
-     * @param entity  The existing entity to update.
+     * @param command 修改命令。
+     * @param entity  要更新的现有实体。
      */
     void updateEntity(M command, E entity);
 }

@@ -1,17 +1,17 @@
 package com.mayanshe.nosocomiumonline.shared.contract;
 
 /**
- * Contract for converting an Entity to a DTO.
+ * 将 Entity 转换为 DTO 的契约。
  *
- * @param <E> The Entity type.
- * @param <D> The DTO type.
+ * @param <E> 实体类型。
+ * @param <D> DTO 类型。
  */
 public interface IEntityToDto<E, D> {
     /**
-     * Converts an entity to a DTO.
+     * 将实体转换为 DTO。
      *
-     * @param entity The entity.
-     * @return The DTO.
+     * @param entity 实体。
+     * @return DTO。
      */
     D toDto(E entity);
 }

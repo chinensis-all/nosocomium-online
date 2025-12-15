@@ -8,40 +8,47 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * Configuration for Dynamic CRUD Service.
+ * 动态CRUD服务配置
  *
- * @param <E> Entity Type
+ * @param <E> Entity类型
  */
 @Getter
 @Builder
 public class CrudConfig<E> {
-    private final Class<E> entityType;
-    private final String tableName;
-    @Builder.Default
-    private final String pkName = "id";
+    private final String name;                                             // 配置名称
+    private final String title;                                            // 配置标题,用于错误输出
+
+    private final Class<E> entityType;                                     // Entity类型
+    private final String tableName;                                        // 数据库表名
+    @Builder.Default                                                       // 主键名称，默认为"id"
+    private final String pkName = "id";                                    // 主键名称
 
     // Converters
-    private final IMapToEntity<E> mapToEntity;
-    private final IEntityToDto<E, ?> entityToDto;
-    private final ICreateCommandToEntity<?, E> createCommandToEntity;
-    private final IModifyCommandToEntity<?, E> modifyCommandToEntity;
+    private final IMapToEntity<E> mapToEntity;                             // Map到Entity的转换器
+    private final IEntityToDto<E, ?> entityToDto;                          // Entity到DTO的转换器
+    private final ICreateCommandToEntity<?, E> createCommandToEntity;      // 创建Command到Entity的转换器
+    private final IModifyCommandToEntity<?, E> modifyCommandToEntity;      // 修改Command到Entity的转换器
 
     // Feature Flags
     @Builder.Default
-    private final boolean isSoftDelete = false;
+    private final boolean isSoftDelete = false;                            // 是否启用软删除
     @Builder.Default
-    private final boolean publishEvents = true;
+    private final boolean publishEvents = true;                            // 是否发布事件
 
     // Cache Settings
     @Builder.Default
-    private final boolean enableFindCache = false;
+    private final boolean enableDetailCache = false;                       // 是否启用Detail缓存
     @Builder.Default
-    private final long findCacheTtl = 600; // Seconds
+    private final long detailCacheTTL = 600;                               // Detail缓存TTL，单位秒
 
     @Builder.Default
-    private final boolean enableListCache = true;
+    private final boolean enableListCache = true;                          // 是否启用List缓存
     @Builder.Default
     private final long listCacheTtl = 60; // Seconds
+
+    public String getName() {
+        return name != null ? name.toLowerCase() : tableName.toLowerCase();
+    }
 
     public void validate() {
         if (entityType == null)

@@ -149,3 +149,5 @@ DynamicCrudService ≠ ORM ≠ ActiveRecord ≠ Domain Model
      - 更新/删除时需清除缓存
 - **Paginate** (默认开启, TTL 60s, 键 `Paginate:Tdo:criteria=MD5`)
 - **KeysetPaginate / Search / KVSearch**: 同 Paginate 策略
+
+### 11. CrudConfig 我改成了以name获取config, 请修改后续

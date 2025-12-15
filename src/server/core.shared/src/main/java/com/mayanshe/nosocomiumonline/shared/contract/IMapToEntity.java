@@ -3,16 +3,16 @@ package com.mayanshe.nosocomiumonline.shared.contract;
 import java.util.Map;
 
 /**
- * Contract for converting a Map to an Entity.
+ * 将 Map 转换为 Entity 的契约。
  *
- * @param <E> The Entity type.
+ * @param <E> 实体类型。
  */
 public interface IMapToEntity<E> {
     /**
-     * Converts a map to an entity.
+     * 将 Map 转换为实体。
      *
-     * @param map The map containing data.
-     * @return The entity.
+     * @param map 包含数据的 Map。
+     * @return 实体。
      */
     E toEntity(Map<String, Object> map);
 }

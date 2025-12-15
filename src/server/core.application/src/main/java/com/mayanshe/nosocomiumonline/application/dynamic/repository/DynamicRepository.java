@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Interface for Dynamic Repository.
+ * 动态仓库接口。
  * <p>
- * Provides abstract access to the database for dynamic entities.
+ * 为动态实体提供对数据库的抽象访问。
  */
 public interface DynamicRepository {
 
@@ -21,34 +21,33 @@ public interface DynamicRepository {
     Long insert(String tableName, String pkName, Map<String, Object> data);
 
     /**
-     * Updates a record.
+     * 插入一条记录。
      *
-     * @param tableName table name
-     * @param pkName    primary key column name
-     * @param id        record ID
-     * @param data      data map
-     * @return rows affected
+     * @param tableName 表名
+     * @param pkName    主键列名
+     * @param data      数据映射
+     * @return 生成的主键 ID
      */
     int update(String tableName, String pkName, Long id, Map<String, Object> data);
 
     /**
-     * Finds a record by ID.
+     * 根据 ID 查询一条记录。
      *
-     * @param tableName table name
-     * @param pkName    primary key column name
-     * @param id        record ID
-     * @return data map
+     * @param tableName 表名
+     * @param pkName    主键列名
+     * @param id        记录 ID
+     * @return 数据映射
      */
     Map<String, Object> findById(String tableName, String pkName, Long id);
 
     /**
-     * Searches for records.
+     * 查询记录。
      *
-     * @param tableName table name
-     * @param criteria  search criteria
-     * @param limit     limit
-     * @param offset    offset
-     * @return list of data maps
+     * @param tableName 表名
+     * @param criteria  查询条件
+     * @param limit     限制条数
+     * @param offset    偏移量
+     * @return 数据映射列表
      */
     List<Map<String, Object>> search(String tableName, Map<String, Object> criteria, int limit, int offset);
 
@@ -63,7 +62,7 @@ public interface DynamicRepository {
 
     /**
      * Keyset Search for pagination.
-     * 
+     *
      * @param tableName    table name
      * @param criteria     search criteria (filters)
      * @param keysetColumn column for keyset (e.g. id, created_at)
@@ -71,12 +70,11 @@ public interface DynamicRepository {
      * @param limit        limit
      * @return list of data maps
      */
-    List<Map<String, Object>> keysetSearch(String tableName, Map<String, Object> criteria, String keysetColumn,
-            Object keysetValue, int limit);
+    List<Map<String, Object>> keysetSearch(String tableName, Map<String, Object> criteria, String keysetColumn, Object keysetValue, int limit);
 
     /**
      * Physically deletes a record.
-     * 
+     *
      * @param tableName table name
      * @param pkName    primary key column name
      * @param id        record ID
@@ -86,7 +84,7 @@ public interface DynamicRepository {
 
     /**
      * Soft deletes a record (sets deleted_at).
-     * 
+     *
      * @param tableName table name
      * @param pkName    primary key column name
      * @param id        record ID

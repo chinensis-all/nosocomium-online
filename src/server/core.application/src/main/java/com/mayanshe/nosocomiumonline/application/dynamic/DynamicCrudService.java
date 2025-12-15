@@ -1,12 +1,13 @@
+
 package com.mayanshe.nosocomiumonline.application.dynamic;
 
+import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mayanshe.nosocomiumonline.application.dynamic.config.CrudConfig;
 import com.mayanshe.nosocomiumonline.application.dynamic.repository.DynamicRepository;
 import com.mayanshe.nosocomiumonline.application.messaging.EventPublisher;
 import com.mayanshe.nosocomiumonline.shared.base.BaseQuery;
 import com.mayanshe.nosocomiumonline.shared.contract.ICreateCommandToEntity;
-import com.mayanshe.nosocomiumonline.shared.contract.IModifyCommandToEntity;
 import com.mayanshe.nosocomiumonline.shared.event.IntegrationEvent;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,50 +29,67 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Dynamic CRUD Service.
+ * 动态 CRUD 服务。
  * <p>
- * Provides generic CRUD operations based on registered configurations.
+ * 基于注册的配置提供通用的 CRUD 操作。
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class DynamicCrudService {
-
     private final DynamicRepository dynamicRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final EventPublisher eventPublisher;
     private final StringRedisTemplate redisTemplate;
 
-    private final Map<Class<?>, CrudConfig<?>> configMap = new ConcurrentHashMap<>();
+    private final Cache<String, Object> cache = CacheUtil.newTimedCache(10 * 60 * 1000);
+
+    private final Map<String, CrudConfig<?>> configMap = new ConcurrentHashMap<>(); // 配置映射
 
     /**
-     * Registers a configuration.
-     *
-     * @param config The configuration to register.
+     * 注册 CRUD 配置。
+     * 
+     * @param config CRUD 配置
      */
     public void register(CrudConfig<?> config) {
         config.validate();
-        configMap.put(config.getEntityType(), config);
+        configMap.put(config.getName(), config);
         log.info("Registered Dynamic CRUD for entity: {}", config.getEntityType().getSimpleName());
     }
 
     /**
-     * Retrieves configuration for an entity type.
+     * 获取实体类型的配置。
      */
-    @SuppressWarnings("unchecked")
-    private <E> CrudConfig<E> getConfig(Class<E> entityType) {
-        CrudConfig<?> config = configMap.get(entityType);
-        Assert.notNull(config, "No configuration found for entity: " + entityType.getSimpleName());
+    private <E> CrudConfig<E> getConfig(String configName) {
+        CrudConfig<?> config = configMap.get(configName.toLowerCase());
+        if (config == null) {
+            throw new IllegalArgumentException("No CRUD configuration found for: " + configName);
+        }
+
         return (CrudConfig<E>) config;
     }
 
-    // ===================================================================================
-    // Find (Cached)
-    // ===================================================================================
+    public <DTO> DTO find(String configName, Long id) {
+        configName = configName.toLowerCase();
+        CrudConfig<DTO> config = getConfig(configName);
 
-    public <E> Map<String, Object> findRaw(Class<E> entityType, Long id) {
-        CrudConfig<E> config = getConfig(entityType);
-        String cacheKey = config.isEnableFindCache() ? String.format("%s:id=%d", entityType.getSimpleName(), id) : null;
+        // 查询缓存
+        if (config.isEnableDetailCache()) {
+            String cacheKey = String.format("%s:id=%d", StrUtil.upperFirst(StrUtil.toCamelCase(config.getName())), id);
+
+        }
+    }
+
+    /**
+     * 根据 ID 查找模型
+     *
+     * @param configName 配置名称
+     * @param id         实体ID
+     * @return 模型数据映射
+     */
+    public Map<String, Object>  findRaw(String configName, Long id) {
+        CrudConfig<?> config = getConfig(configName);
+        String cacheKey = config.isEnableFindCache() ? String.format("%s:id=%d", StrUtil.upperFirst(StrUtil.toCamelCase(config.getName())), id) : null;
 
         if (cacheKey != null) {
             Map<String, Object> cached = getFromCache(cacheKey);
@@ -92,8 +110,8 @@ public class DynamicCrudService {
     // ===================================================================================
 
     @Transactional
-    public <E> Long create(Class<E> entityType, Map<String, Object> data) {
-        CrudConfig<E> config = getConfig(entityType);
+    public Long create(String configName, Map<String, Object> data) {
+        CrudConfig<?> config = getConfig(configName);
         Long id = dynamicRepository.insert(config.getTableName(), config.getPkName(), data);
 
         // Event
@@ -104,13 +122,14 @@ public class DynamicCrudService {
     }
 
     @Transactional
-    public <C, E> Long create(Class<E> entityType, C command) {
-        CrudConfig<E> config = getConfig(entityType);
+    public <C> Long create(String configName, C command) {
+        CrudConfig<Object> config = getConfig(configName);
         @SuppressWarnings("unchecked")
-        ICreateCommandToEntity<C, E> converter = (ICreateCommandToEntity<C, E>) config.getCreateCommandToEntity();
-        Assert.notNull(converter, "No CreateCommand converter registered for " + entityType.getSimpleName());
+        ICreateCommandToEntity<C, Object> converter = (ICreateCommandToEntity<C, Object>) config
+                .getCreateCommandToEntity();
+        Assert.notNull(converter, "No CreateCommand converter registered for " + configName);
 
-        E entity = converter.toEntity(command);
+        Object entity = converter.toEntity(command);
         Map<String, Object> map = convertEntityToMap(entity);
         Long id = dynamicRepository.insert(config.getTableName(), config.getPkName(), map);
 
@@ -125,13 +144,13 @@ public class DynamicCrudService {
     // ===================================================================================
 
     @Transactional
-    public <E> void modify(Class<E> entityType, Long id, Map<String, Object> data) {
-        CrudConfig<E> config = getConfig(entityType);
+    public void modify(String configName, Long id, Map<String, Object> data) {
+        CrudConfig<?> config = getConfig(configName);
         dynamicRepository.update(config.getTableName(), config.getPkName(), id, data);
 
         // Cache Eviction
         if (config.isEnableFindCache()) {
-            evictCache(String.format("%s:id=%d", entityType.getSimpleName(), id));
+            evictCache(String.format("%s:id=%d", config.getName(), id));
         }
 
         // Event
@@ -141,18 +160,18 @@ public class DynamicCrudService {
     }
 
     @Transactional
-    public <M, E> void modify(Class<E> entityType, M command) {
+    public <M> void modify(String configName, M command) {
         throw new UnsupportedOperationException(
                 "Modify with Command object requires explicitID or Refection. Not fully implemented yet.");
     }
 
     // ===================================================================================
-    // Destroy (New)
+    // Destroy
     // ===================================================================================
 
     @Transactional
-    public <E> void destroy(Class<E> entityType, Long id) {
-        CrudConfig<E> config = getConfig(entityType);
+    public void destroy(String configName, Long id) {
+        CrudConfig<?> config = getConfig(configName);
 
         if (config.isSoftDelete()) {
             dynamicRepository.softDelete(config.getTableName(), config.getPkName(), id);
@@ -162,7 +181,7 @@ public class DynamicCrudService {
 
         // Cache Eviction
         if (config.isEnableFindCache()) {
-            evictCache(String.format("%s:id=%d", entityType.getSimpleName(), id));
+            evictCache(String.format("%s:id=%d", config.getName(), id));
         }
 
         // Event
@@ -175,18 +194,18 @@ public class DynamicCrudService {
     // Search & Pagination (Cached)
     // ===================================================================================
 
-    public <E> List<Map<String, Object>> search(Class<E> entityType, BaseQuery query, int limit, int offset) {
-        return search(entityType, query.toMap(), limit, offset);
+    public List<Map<String, Object>> search(String configName, BaseQuery query, int limit, int offset) {
+        return search(configName, query.toMap(), limit, offset);
     }
 
-    public <E> List<Map<String, Object>> search(Class<E> entityType, Map<String, Object> criteria, int limit,
+    public List<Map<String, Object>> search(String configName, Map<String, Object> criteria, int limit,
             int offset) {
-        CrudConfig<E> config = getConfig(entityType);
+        CrudConfig<?> config = getConfig(configName);
 
         String listCacheKey = null;
         if (config.isEnableListCache()) {
             String hash = generateCriteriaHash(criteria, limit, offset);
-            listCacheKey = String.format("Paginate:%s:criteria=%s", entityType.getSimpleName(), hash);
+            listCacheKey = String.format("Paginate:%s:criteria=%s", config.getName(), hash);
             List<Map<String, Object>> cached = getListFromCache(listCacheKey);
             if (cached != null)
                 return cached;
@@ -203,21 +222,21 @@ public class DynamicCrudService {
         return result;
     }
 
-    public <E> List<Map<String, Object>> paginate(Class<E> entityType, Map<String, Object> criteria, int page,
+    public List<Map<String, Object>> paginate(String configName, Map<String, Object> criteria, int page,
             int size) {
         int offset = (page - 1) * size;
-        return search(entityType, criteria, size, offset);
+        return search(configName, criteria, size, offset);
     }
 
-    public <E> List<Map<String, Object>> keysetPaginate(Class<E> entityType, Map<String, Object> criteria,
+    public List<Map<String, Object>> keysetPaginate(String configName, Map<String, Object> criteria,
             String keysetColumn, Object keysetValue, int limit) {
-        CrudConfig<E> config = getConfig(entityType);
+        CrudConfig<?> config = getConfig(configName);
 
         // Similar cache strategy for Keyset
         String listCacheKey = null;
         if (config.isEnableListCache()) {
             String hash = generateCriteriaHash(criteria, keysetColumn, keysetValue, limit);
-            listCacheKey = String.format("Paginate:%s:criteria=%s", entityType.getSimpleName(), hash);
+            listCacheKey = String.format("Paginate:%s:criteria=%s", config.getName(), hash);
             List<Map<String, Object>> cached = getListFromCache(listCacheKey);
             if (cached != null)
                 return cached;
@@ -247,9 +266,9 @@ public class DynamicCrudService {
         try {
             String payloadJson = objectMapper.writeValueAsString(payloadMap);
             DynamicIntegrationEvent event = DynamicIntegrationEvent.builder()
-                    .aggregateType(config.getEntityType().getSimpleName())
+                    .aggregateType(config.getName())
                     .aggregateId(aggregateId)
-                    .eventType(eventType) // e.g., CREATED, MODIFIED, DELETED
+                    .eventType(eventType)
                     .payload(payloadJson)
                     .occurredAt(LocalDateTime.now())
                     .build();
@@ -259,18 +278,19 @@ public class DynamicCrudService {
         }
     }
 
-    // --- Cache Helpers ---
-
-    private Map<String, Object> getFromCache(String key) {
-        String json = redisTemplate.opsForValue().get(key);
-        if (json == null)
-            return null;
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            log.warn("Cache deserialization failed for key: {}", key, e);
+    private <T> T getFromCache(String key, Class<T> type) {
+        Object value = cache.get(key);
+        if (value == null) {
             return null;
         }
+        if (!type.isInstance(value)) {
+            throw new ClassCastException(
+                    "Cache value type mismatch. key=" + key +
+                            ", expected=" + type.getName() +
+                            ", actual=" + value.getClass().getName()
+            );
+        }
+        return (T) value;
     }
 
     private List<Map<String, Object>> getListFromCache(String key) {
@@ -336,7 +356,6 @@ public class DynamicCrudService {
             return aggregateType;
         }
 
-        @Override
         public String payload() {
             return payload;
         }
