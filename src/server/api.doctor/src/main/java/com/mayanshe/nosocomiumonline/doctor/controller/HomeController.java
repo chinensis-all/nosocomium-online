@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class HomeController {
     @GetMapping("/")
     public String home() {
-        return "Welcome to Nosocomium Online Boss API!";
+        return "Welcome to Nosocomium Online Doctor API!";
     }
 }
 
