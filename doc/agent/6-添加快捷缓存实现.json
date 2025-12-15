@@ -1,0 +1,122 @@
+{
+    "name": "RedisSimpleCacheAgent",
+    "role": "Senior Java / Spring Boot Architect",
+    "goal": "在 Spring Boot 项目中基于 spring-boot-starter-data-redis 封装一套简单、可控的 Cache 接口，并提供完整测试代码",
+    "constraints": {
+        "architecture": "DDD + CQRS",
+        "database_schema": "doc/data/schema.sql 只允许追加，不允许删除或修改",
+        "redis": {
+            "starter": "spring-boot-starter-data-redis",
+            "serialization": "JSON only",
+            "forbidden": [
+                "Java native serialization",
+                "Hutool Redis",
+                "Spring Cache annotations"
+            ]
+        }
+    },
+    "project_structure": {
+        "core.shared": "缓存接口、抽象定义",
+        "core.domain": "不得依赖 Cache",
+        "core.application": "只能依赖 Cache 接口",
+        "core.infrastructure": "Redis Cache 实现与配置",
+        "api": "不得直接访问 Redis",
+        "task": "可使用 Cache 接口"
+    },
+    "tasks": [
+        {
+            "task": "Define ICache interface",
+            "output": [
+                {
+                    "module": "src/server/core.shared",
+                    "path": "contract/ICache.java",
+                    "content_requirements": [
+                        "定义 remove(String key)",
+                        "定义 <T> T remember(String key, long ttlSeconds, Class<T> type, Supplier<T> loader)",
+                        "接口不依赖 Spring"
+                    ]
+                }
+            ]
+        },
+        {
+            "task": "Implement RedisCacheService",
+            "output": [
+                {
+                    "module": "src/server/core.infrastructure",
+                    "path": "cache/RedisCacheService.java",
+                    "content_requirements": [
+                        "使用 StringRedisTemplate 或 RedisTemplate<String,String>",
+                        "只存 String 类型的 JSON 数据",
+                        "loader 返回 null 时不写缓存",
+                        "显式设置 TTL（秒）",
+                        "反序列化失败抛出明确异常",
+                        "实现 CacheService 接口"
+                    ]
+                }
+            ]
+        },
+        {
+            "task": "Redis configuration",
+            "output": [
+                {
+                    "module": "src/server/core.infrastructure",
+                    "path": "cache/RedisCacheConfig.java",
+                    "content_requirements": [
+                        "配置 RedisTemplate 或 StringRedisTemplate",
+                        "配置 JSON 序列化（Jackson 或 Fastjson2）"
+                    ]
+                }
+            ]
+        },
+        {
+            "task": "Write tests for RedisCacheService",
+            "output": [
+                {
+                    "module": "src/server/core.infrastructure",
+                    "path": "cache/RedisCacheServiceTest.java",
+                    "content_requirements": [
+                        "测试 remember 未命中时调用 loader 并写入缓存",
+                        "测试 remember 命中缓存时不调用 loader",
+                        "测试 TTL 生效（过期后重新加载）",
+                        "测试 remove 后缓存失效",
+                        "测试类型不匹配或非法 JSON 场景",
+                        "使用 Spring Boot Test + Redis（Embedded Redis 或 Testcontainers）"
+                    ]
+                }
+            ]
+        },
+        {
+            "task": "Provide usage example",
+            "output": [
+                {
+                    "module": "src/server/core.application",
+                    "path": "dynamic/CacheUsageExample.java",
+                    "content_requirements": [
+                        "演示 application 层通过 CacheService 使用 remember",
+                        "示例场景为 DynamicCrudConfig 缓存"
+                    ]
+                }
+            ]
+        }
+    ],
+    "quality_rules": {
+        "performance": [
+            "禁止主链路频繁反序列化",
+            "避免无意义的 Redis 访问",
+            "请全程用中文与我交流",
+            "注释应注尽注",
+            "注释请用中文"
+        ],
+        "design": [
+            "Cache 不是领域能力",
+            "接口必须极简",
+            "避免过度抽象"
+        ],
+        "testing": [
+            "测试必须可重复执行",
+            "测试不依赖真实生产 Redis",
+            "所有核心逻辑必须被覆盖"
+        ]
+    },
+    "final_reminder": "这是一个基础设施级 Redis Cache 封装，用于配置与元数据缓存，不是通用缓存框架，也不是 Spring Cache 的替代品。"
+}
