@@ -8,6 +8,9 @@ import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
+/**
+ * OutboxMapper: 用于操作事件外发表的MyBatis映射器
+ */
 @Mapper
 public interface OutboxMapper {
 

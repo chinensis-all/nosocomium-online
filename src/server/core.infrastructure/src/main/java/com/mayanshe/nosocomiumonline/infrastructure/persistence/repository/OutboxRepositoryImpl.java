@@ -2,8 +2,8 @@ package com.mayanshe.nosocomiumonline.infrastructure.persistence.repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mayanshe.nosocomiumonline.core.domain.repository.OutboxRepository;
-import com.mayanshe.nosocomiumonline.core.shared.event.IntegrationEvent;
+import com.mayanshe.nosocomiumonline.domain.kernel.eventing.OutboxRepository;
+import com.mayanshe.nosocomiumonline.shared.event.IntegrationEvent;
 import com.mayanshe.nosocomiumonline.infrastructure.persistence.entity.OutboxEntity;
 import com.mayanshe.nosocomiumonline.infrastructure.persistence.mapper.OutboxMapper;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +12,9 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 
+/**
+ * OutboxRepositoryImpl: 集成事件外发存储库实现
+ */
 @Repository
 @Slf4j
 @RequiredArgsConstructor

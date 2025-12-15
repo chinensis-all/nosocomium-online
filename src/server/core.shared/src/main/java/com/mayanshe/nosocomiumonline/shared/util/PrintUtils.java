@@ -1,4 +1,4 @@
-package com.mayanshe.nosocomiumonline.shared.utils;
+package com.mayanshe.nosocomiumonline.shared.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;

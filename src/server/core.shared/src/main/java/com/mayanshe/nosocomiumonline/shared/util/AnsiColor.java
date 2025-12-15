@@ -1,4 +1,4 @@
-package com.mayanshe.nosocomiumonline.shared.utils;
+package com.mayanshe.nosocomiumonline.shared.util;
 
 /**
  * AnsiColor: ANSI 颜色代码工具类

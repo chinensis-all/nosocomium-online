@@ -1,4 +1,4 @@
-package com.mayanshe.nosocomiumonline.core.domain.event;
+package com.mayanshe.nosocomiumonline.domain.kernel.eventing;
 
 import java.time.LocalDateTime;
 
