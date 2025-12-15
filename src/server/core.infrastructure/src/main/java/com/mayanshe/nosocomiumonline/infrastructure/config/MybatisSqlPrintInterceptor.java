@@ -1,6 +1,6 @@
 package com.mayanshe.nosocomiumonline.infrastructure.config;
 
-import com.mayanshe.nosocomiumonline.shared.utils.PrintUtils;
+import com.mayanshe.nosocomiumonline.shared.util.PrintUtils;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;

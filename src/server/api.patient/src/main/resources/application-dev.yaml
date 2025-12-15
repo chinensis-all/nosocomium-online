@@ -29,7 +29,7 @@ mybatis:
   mapper-locations:
     - classpath*:mapper/*.xml
     - classpath*:com/mayanshe/scrmstd/infrastructure/mapper/*.xml
-  type-aliases-package: com.mayanshe.nosocomiumonline.infrastructure.persistence.po
+  type-aliases-package: com.mayanshe.nosocomiumonline.infrastructure.persistence.entity
   configuration:
     map-underscore-to-camel-case: true
     lazy-loading-enabled: false
