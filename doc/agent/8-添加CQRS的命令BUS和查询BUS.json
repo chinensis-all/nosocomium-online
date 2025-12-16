@@ -1,0 +1,248 @@
+{
+  "名称": "DDD_CQRS_CommandBus_QueryBus_开发Agent",
+  "工具": "Antigratity",
+  "总体意图": "在严格的 DDD 分层 + CQRS + DynamicCrudService 架构下，实现一套 CommandBus 和 QueryBus。必须遵循既定项目结构和职责边界，不允许擅自引入新架构模式或改变目录结构。",
+  "架构模式": {
+    "模式": "DDD 分层 + CQRS + DynamicCrudService",
+    "核心约束": [
+      "Domain 层不依赖 Spring、不依赖基础设施",
+      "Application 层只依赖 shared 和 domain，不直接依赖 infrastructure",
+      "Infrastructure 层负责 Spring 装配和技术实现",
+      "API 模块只能调用 Application 层（Bus / Service），不能直接访问 infrastructure",
+      "DynamicCrudService 已存在于 core.application，本任务只保证 CQRS Bus 与其兼容"
+    ]
+  },
+  "项目结构": {
+    "根目录": "src/server",
+    "模块说明": [
+      {
+        "模块": "core.shared",
+        "职责": "跨项目共享：接口、基类、值对象、共享工具类"
+      },
+      {
+        "模块": "core.domain",
+        "职责": "领域层，按限界上下文划分；技术支撑代码统一放在 kernel 子包"
+      },
+      {
+        "模块": "core.application",
+        "职责": "应用层：DTO（Command / Query）、应用服务、命令与查询处理器"
+      },
+      {
+        "模块": "core.infrastructure",
+        "职责": "基础设施层：Spring 配置、实现类、注册表、技术细节"
+      },
+      { "模块": "api.boss", "职责": "管理后台 API" },
+      { "模块": "api.patient", "职责": "患者端 API" },
+      { "模块": "api.doctor", "职责": "医生端 API" },
+      { "模块": "task.all", "职责": "定时任务、后台任务" }
+    ],
+    "固定目录约定": [
+      {
+        "模块": "core.application",
+        "目录": "dto",
+        "说明": "所有 DTO 都必须放在这里，包括 Command 和 Query（允许 dto/command、dto/query 子目录）"
+      },
+      {
+        "模块": "core.application",
+        "目录": "service",
+        "说明": "应用服务目录"
+      },
+      {
+        "模块": "core.application",
+        "目录": "service/handler",
+        "说明": "CommandHandler 和 QueryHandler 必须放在这里"
+      }
+    ],
+    "禁止事项": [
+      "不允许新增顶级模块",
+      "不允许把 Handler 放到 domain 或 infrastructure",
+      "Bus 接口不能放在 infrastructure",
+      "不允许引入 Axon、MediatR 等第三方 CQRS 框架",
+      "不允许自行发挥新的架构模式"
+    ]
+  },
+  "需要交付的内容": [
+    {
+      "模块": "core.shared",
+      "文件": [
+        {
+          "路径": "cqrs/Command.java",
+          "要求": [
+            "Command 标记接口",
+            "不依赖 Spring"
+          ]
+        },
+        {
+          "路径": "cqrs/Query.java",
+          "要求": [
+            "Query 标记接口",
+            "不依赖 Spring"
+          ]
+        },
+        {
+          "路径": "cqrs/CommandHandler.java",
+          "要求": [
+            "泛型命令处理器接口",
+            "明确是否有返回值，并在全项目保持一致",
+            "不依赖 Spring"
+          ]
+        },
+        {
+          "路径": "cqrs/QueryHandler.java",
+          "要求": [
+            "泛型查询处理器接口，必须有返回值",
+            "不依赖 Spring"
+          ]
+        },
+        {
+          "路径": "cqrs/CommandBus.java",
+          "要求": [
+            "命令总线接口",
+            "只定义 dispatch 方法",
+            "不依赖 Spring"
+          ]
+        },
+        {
+          "路径": "cqrs/QueryBus.java",
+          "要求": [
+            "查询总线接口",
+            "只定义 ask 方法",
+            "不依赖 Spring"
+          ]
+        },
+        {
+          "路径": "cqrs/exceptions/HandlerNotFoundException.java",
+          "要求": [
+            "当未找到 Handler 时抛出"
+          ]
+        }
+      ]
+    },
+    {
+      "模块": "core.application",
+      "文件": [
+        {
+          "路径": "service/bus/DefaultCommandBus.java",
+          "要求": [
+            "实现 core.shared 的 CommandBus",
+            "基于 Command 类型精确路由 Handler",
+            "构造器注入",
+            "线程安全",
+            "不硬编码任何业务 Handler"
+          ]
+        },
+        {
+          "路径": "service/bus/DefaultQueryBus.java",
+          "要求": [
+            "实现 core.shared 的 QueryBus",
+            "基于 Query 类型精确路由 Handler",
+            "构造器注入",
+            "线程安全"
+          ]
+        }
+      ]
+    },
+    {
+      "模块": "core.infrastructure",
+      "文件": [
+        {
+          "路径": "cqrs/HandlerRegistry.java",
+          "要求": [
+            "维护 Command -> CommandHandler 映射",
+            "维护 Query -> QueryHandler 映射",
+            "使用 ConcurrentHashMap，O(1) 查找",
+            "未命中时快速失败并抛异常"
+          ]
+        },
+        {
+          "路径": "cqrs/CqrsBusConfiguration.java",
+          "要求": [
+            "Spring @Configuration",
+            "自动扫描并注册 core.application/service/handler 下的所有 Handler",
+            "泛型解析只在启动期做一次，不允许运行期反射",
+            "不得依赖脆弱的命名规则"
+          ]
+        }
+      ]
+    },
+    {
+      "模块": "core.application",
+      "示例": [
+        {
+          "说明": "示例 Command 和 Handler",
+          "约束": [
+            "Command DTO 放在 dto/command",
+            "Handler 放在 service/handler",
+            "仅用于演示，不写复杂业务"
+          ]
+        },
+        {
+          "说明": "示例 Query 和 Handler",
+          "约束": [
+            "Query DTO 放在 dto/query",
+            "Handler 放在 service/handler"
+          ]
+        },
+        {
+          "说明": "Bus 使用示例",
+          "路径": "service/bus/BusUsageExampleService.java",
+          "要求": [
+            "演示 commandBus.dispatch(...)",
+            "演示 queryBus.ask(...)",
+            "不直接引用 infrastructure"
+          ]
+        }
+      ]
+    }
+  ],
+  "设计决策": {
+    "分发策略": [
+      "默认使用 Command / Query 的具体 Class 精确匹配 Handler",
+      "不默认支持继承层级匹配（如需可扩展）"
+    ],
+    "Handler 注册": [
+      "基于 Spring Bean 扫描",
+      "启动期解析泛型参数",
+      "结果缓存，运行期零反射"
+    ],
+    "性能要求": [
+      "热路径无反射",
+      "并发安全",
+      "清晰、可预测的异常行为"
+    ]
+  },
+  "测试要求": {
+    "必须编写测试": true,
+    "测试模块": "core.application",
+    "测试内容": [
+      "CommandBus 能正确路由 Handler",
+      "QueryBus 能正确返回结果",
+      "未注册 Handler 抛出异常",
+      "基础并发安全测试",
+      "Spring 集成测试：Bus 和 Handler 能被正确装配"
+    ]
+  },
+  "对 Antigratity 的强约束": [
+    "不允许修改既定模块名和目录结构",
+    "DTO 只能放在 core.application/dto",
+    "Handler 只能放在 core.application/service/handler",
+    "Bus 接口只能放在 core.shared",
+    "不允许引入第三方 CQRS 框架",
+    "不允许自行设计新抽象层"
+  ],
+  "输出要求": {
+    "代码风格": "生产可用、简洁、可读",
+    "必须包含": [
+      "core.shared/cqrs 下的所有接口",
+      "core.application/service/bus 下的默认 Bus 实现",
+      "core.infrastructure/cqrs 下的注册与配置",
+      "单元测试和一个集成测试"
+    ],
+    "其它": [
+      "请全程用中文和我交流",
+      "备注应注尽注",
+      "涉及用户态的异常请使用INosocomiumException体系",
+      "性能优先，优雅其次"
+    ]
+  }
+}
