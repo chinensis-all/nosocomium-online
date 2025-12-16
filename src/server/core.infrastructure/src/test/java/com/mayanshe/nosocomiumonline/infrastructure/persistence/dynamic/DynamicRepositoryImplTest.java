@@ -1,34 +1,59 @@
 package com.mayanshe.nosocomiumonline.infrastructure.persistence.dynamic;
 
-import com.mayanshe.nosocomiumonline.infrastructure.persistence.mapper.OutboxMapper; // Ensure MyBatis config loads
-import org.junit.jupiter.api.Assertions;
+import com.mayanshe.nosocomiumonline.application.dynamic.DynamicMapperRegistry;
+import com.mayanshe.nosocomiumonline.infrastructure.persistence.mapper.CrudMapper;
+import com.mayanshe.nosocomiumonline.infrastructure.persistence.repository.DynamicRepositoryImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mybatis.spring.boot.test.autoconfigure.MybatisTest;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.jdbc.Sql;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-@MybatisTest
-@Import(DynamicRepositoryImpl.class) // Import the implementation as component
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
 class DynamicRepositoryImplTest {
 
-    @Autowired
+    @Mock
+    private DynamicMapperRegistry dynamicMapperRegistry;
+
+    @Mock
+    private CrudMapper<TestEntity> crudMapper;
+
+    @InjectMocks
     private DynamicRepositoryImpl dynamicRepository;
 
+    private static class TestEntity {
+    }
+
+    @BeforeEach
+    void setUp() {
+    }
+
     @Test
-    void testDynamicOperations() {
-        // Create table
-        dynamicRepository.count("event_outbox", null);
-        // We reuse event_outbox for testing simply because it exists in schema.
-        // Or we rely on H2 in-memory creation.
-        // Given CrudConfig requires a table, let's assume 'event_outbox' works or
-        // create a test table via script?
-        // @MybatisTest usually rolls back.
-        // But event_outbox is complex (has JSON).
-        // Let's rely on basic assertions if table exists.
+    void count_shouldDelegateToMapper() {
+        Map<String, Object> criteria = new HashMap<>();
+        Class<TestEntity> type = TestEntity.class;
+
+        // Mock registry to return our mock mapper
+        when(dynamicMapperRegistry.getMapper(eq(type))).thenReturn(crudMapper);
+        // Mock mapper typing check (CrudMapper<E> usually has entityType() or similar
+        // if generic)
+        // In DynamicRepositoryImpl: if (mapperObj instanceof CrudMapper mapper &&
+        // mapper.entityType().equals(type))
+        // So we need to mock entityType()
+        doReturn(type).when(crudMapper).entityType();
+        when(crudMapper.count(eq(criteria))).thenReturn(5L);
+
+        long count = dynamicRepository.count(criteria, type);
+
+        assertEquals(5L, count);
+        verify(crudMapper).count(eq(criteria));
     }
 }

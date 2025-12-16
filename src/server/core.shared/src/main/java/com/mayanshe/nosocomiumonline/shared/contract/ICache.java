@@ -1,5 +1,6 @@
 package com.mayanshe.nosocomiumonline.shared.contract;
 
+import java.lang.reflect.Type;
 import java.util.function.Supplier;
 
 /**
@@ -20,8 +21,8 @@ public interface ICache {
      * @param ttlSeconds 过期时间（秒）
      * @param type       数据类型
      * @param loader     数据加载器
-     * @param <T>        数据类型泛型
+     * @param <T>       数据类型泛型
      * @return 数据
      */
-    <T> T remember(String key, long ttlSeconds, Class<T> type, Supplier<T> loader);
+    <T> T remember(String key, long ttlSeconds, Type type, Supplier<T> loader);
 }

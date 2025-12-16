@@ -32,6 +32,7 @@
         <hutool.version>5.8.42</hutool.version>
         <commons-pool2.version>2.13.0</commons-pool2.version>
         <mybatis-spring-boot.version>3.0.3</mybatis-spring-boot.version>
+        <modelmapper.version>3.2.0</modelmapper.version>
     </properties>
 
     <dependencyManagement>
@@ -43,6 +44,28 @@
                 <version>${spring-boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <!-- Project Modules -->
+            <dependency>
+                <groupId>com.mayanshe</groupId>
+                <artifactId>core.shared</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mayanshe</groupId>
+                <artifactId>core.domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mayanshe</groupId>
+                <artifactId>core.application</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mayanshe</groupId>
+                <artifactId>core.infrastructure</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <!-- Third-party Dependencies -->
@@ -70,6 +93,11 @@
                 <groupId>org.mybatis.spring.boot</groupId>
                 <artifactId>mybatis-spring-boot-starter</artifactId>
                 <version>${mybatis-spring-boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.modelmapper</groupId>
+                <artifactId>modelmapper</artifactId>
+                <version>${modelmapper.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

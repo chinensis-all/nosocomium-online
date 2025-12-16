@@ -15,4 +15,6 @@ public interface IMapToEntity<E> {
      * @return 实体。
      */
     E toEntity(Map<String, Object> map);
+
+    void applyToEntity(Map<String, Object> map, E entity);
 }
