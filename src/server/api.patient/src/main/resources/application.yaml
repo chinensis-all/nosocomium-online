@@ -7,3 +7,10 @@ spring:
   main:
     web-application-type: servlet
 
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+knife4j:
+  enable: true

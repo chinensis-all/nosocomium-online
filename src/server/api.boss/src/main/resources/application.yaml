@@ -7,3 +7,21 @@ spring:
   main:
     web-application-type: servlet
 
+
+storage:
+  cos:
+    secret-id: ${COS_SECRET_ID:AKIDxxxx}
+    secret-key: ${COS_SECRET_KEY:xxxx}
+    region: ${COS_REGION:ap-beijing}
+    bucket-private: ${COS_BUCKET_PRIVATE:private-bucket-1250000000}
+    bucket-public: ${COS_BUCKET_PUBLIC:public-bucket-1250000000}
+    cdn-domain: ${COS_CDN_DOMAIN:}
+    duration-seconds: 3600
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+knife4j:
+  enable: true
