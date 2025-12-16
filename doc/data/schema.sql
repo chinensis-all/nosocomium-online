@@ -2,8 +2,8 @@ CREATE DATABASE IF NOT EXISTS `nosocomium-online` DEFAULT CHARACTER SET utf8mb4 
 USE `nosocomium-online`;
 SET NAMES utf8mb4;
 
--- 可靠事件传递 - Outbox Table
-CREATE TABLE IF NOT EXISTS `event_outbox`
+-- 可靠事件传递
+CREATE TABLE IF NOT EXISTS `_events`
 (
     `id`             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID',
     `aggregate_type` VARCHAR(64)  NOT NULL COMMENT '聚合类型',
