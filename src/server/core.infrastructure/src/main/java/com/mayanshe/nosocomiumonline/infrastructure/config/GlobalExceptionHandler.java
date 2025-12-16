@@ -14,7 +14,7 @@ import java.util.Map;
 
 @Slf4j
 @ControllerAdvice
-@Profile({ "prod", "release", "test", "dev" })
+@Profile({ "prod", "release", "test" })
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AbstractHttpException.class)

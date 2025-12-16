@@ -11,6 +11,7 @@ import com.mayanshe.nosocomiumonline.shared.base.BasePageQuery;
 import com.mayanshe.nosocomiumonline.shared.base.BaseQuery;
 import com.mayanshe.nosocomiumonline.shared.contract.*;
 import com.mayanshe.nosocomiumonline.shared.event.IntegrationEvent;
+import com.mayanshe.nosocomiumonline.shared.exception.BadRequestException;
 import com.mayanshe.nosocomiumonline.shared.valueobject.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -124,11 +125,11 @@ public class DynamicCrudService {
         }
 
         if (entity == null) {
-            throw new IllegalStateException("Entity conversion resulted in null for config: " + configName);
+            throw new BadRequestException("添加" + config.getTitle() + "失败");
         }
 
         if (1 > dynamicRepository.insert(entity, config.getEntityType())) {
-            throw new RuntimeException("Create operation failed for " + configName);
+            throw new BadRequestException("添加" + config.getTitle() + "失败");
         }
 
         if (config.isPublishEvents()) {
@@ -157,18 +158,16 @@ public class DynamicCrudService {
         if (config.getCreateCommandToEntity() == null) {
             entity = modelMapper.map(command, config.getEntityType());
         } else {
-            @SuppressWarnings("unchecked")
-            ICreateCommandToEntity<Cmd, Object> converter = (ICreateCommandToEntity<Cmd, Object>) config
-                    .getCreateCommandToEntity();
+            @SuppressWarnings("unchecked") ICreateCommandToEntity<Cmd, Object> converter = (ICreateCommandToEntity<Cmd, Object>) config.getCreateCommandToEntity();
             entity = converter.toEntity(command);
         }
 
         if (entity == null) {
-            throw new IllegalStateException("Entity conversion resulted in null for config: " + configName);
+            throw new BadRequestException("添加" + config.getTitle() + "失败");
         }
 
         if (1 > dynamicRepository.insert(entity, config.getEntityType())) {
-            throw new RuntimeException("Create operation failed for " + configName);
+            throw new BadRequestException("添加" + config.getTitle() + "失败");
         }
 
         if (config.isPublishEvents()) {
@@ -187,14 +186,14 @@ public class DynamicCrudService {
     @Transactional
     public void modify(String configName, Map<String, Object> data) {
         if (!data.containsKey("id")) {
-            throw new IllegalArgumentException("ID is required in data for modify operation");
+            throw new BadRequestException("请求参数错误，缺少 ID 字段");
         }
 
         var config = getConfig(configName);
         Long id = Long.valueOf(data.get("id").toString());
         Object entity = dynamicRepository.findById(id, config.getEntityType());
         if (entity == null) {
-            throw new IllegalArgumentException("Entity not found for ID: " + id);
+            throw new BadRequestException(config.getName() + " 未找到，ID: " + id);
         }
 
         Map<String, Object> safeData = new HashMap<>(data);
@@ -207,7 +206,7 @@ public class DynamicCrudService {
         }
 
         if (1 > dynamicRepository.update(entity, config.getEntityType())) {
-            throw new RuntimeException("Update operation failed for " + configName);
+            throw new BadRequestException("修改" + config.getTitle() + "失败");
         }
 
         if (config.isPublishEvents()) {
@@ -229,20 +228,18 @@ public class DynamicCrudService {
         Long id = command.getId();
         Object entity = dynamicRepository.findById(id, config.getEntityType());
         if (entity == null) {
-            throw new IllegalArgumentException("Entity not found for ID: " + id);
+            throw new BadRequestException(config.getName() + " 未找到，ID: " + id);
         }
 
         if (config.getModifyCommandToEntity() == null) {
             modelMapper.map(command, entity);
         } else {
-            @SuppressWarnings("unchecked")
-            IModifyCommandToEntity<Cmd, Object> converter = (IModifyCommandToEntity<Cmd, Object>) config
-                    .getModifyCommandToEntity();
+            @SuppressWarnings("unchecked") IModifyCommandToEntity<Cmd, Object> converter = (IModifyCommandToEntity<Cmd, Object>) config.getModifyCommandToEntity();
             converter.updateEntity(command, entity);
         }
 
         if (1 > dynamicRepository.update(entity, config.getEntityType())) {
-            throw new RuntimeException("Update operation failed for " + configName);
+            throw new BadRequestException("修改" + config.getTitle() + "失败");
         }
 
         if (config.isPublishEvents()) {
@@ -272,8 +269,7 @@ public class DynamicCrudService {
         }
 
         if (config.isPublishEvents()) {
-            publishEvent(config, config.isSoftDelete() ? EVENT_SOFT_DELETED : EVENT_DELETED, String.valueOf(id),
-                    Map.of("id", id));
+            publishEvent(config, config.isSoftDelete() ? EVENT_SOFT_DELETED : EVENT_DELETED, String.valueOf(id), Map.of("id", id));
         }
     }
 
@@ -314,8 +310,7 @@ public class DynamicCrudService {
      * @param <Dto>      DTO 类型
      * @return DTO 列表
      */
-    public <Dto extends IdAccessor> List<Dto> search(String configName, Map<String, Object> criteria, int limit,
-            int offset) {
+    public <Dto extends IdAccessor> List<Dto> search(String configName, Map<String, Object> criteria, int limit, int offset) {
         CrudConfig<Object, Dto> config = getConfig(configName);
 
         List<Dto> res;
@@ -324,8 +319,7 @@ public class DynamicCrudService {
             String hash = generateCriteriaHash(criteria, limit, offset);
             String searchCacheKey = String.format("Search:%s:criteria=%s", config.getName(), hash);
             // Assuming cache returns List<Dto> correctly
-            res = cache.remember(searchCacheKey, config.getSearchCacheTTL(), List.class,
-                    () -> this.search(criteria, limit, offset, config));
+            res = cache.remember(searchCacheKey, config.getSearchCacheTTL(), List.class, () -> this.search(criteria, limit, offset, config));
         } else {
             res = this.search(criteria, limit, offset, config);
         }
@@ -343,8 +337,7 @@ public class DynamicCrudService {
      * @param <Dto>    DTO 类型
      * @return DTO 列表
      */
-    private <Dto extends IdAccessor> List<Dto> search(Map<String, Object> criteria, int limit, int offset,
-            CrudConfig<Object, Dto> config) {
+    private <Dto extends IdAccessor> List<Dto> search(Map<String, Object> criteria, int limit, int offset, CrudConfig<Object, Dto> config) {
         List<Object> entities = dynamicRepository.search(criteria, limit, offset, config.getEntityType());
         if (entities == null || entities.isEmpty()) {
             return List.of();
@@ -375,16 +368,13 @@ public class DynamicCrudService {
      * @param <Dto>      DTO 类型
      * @return 分页结果
      */
-    public <Dto extends IdAccessor> Pagination<Dto> paginate(String configName, Map<String, Object> criteria, int page,
-            int size) {
+    public <Dto extends IdAccessor> Pagination<Dto> paginate(String configName, Map<String, Object> criteria, int page, int size) {
         CrudConfig<Object, Dto> config = getConfig(configName);
 
         if (config.isEnablePaginateCache()) {
             String hash = generateCriteriaHash(criteria);
-            String paginateCacheKey = String.format("Paginate:%s:criteria=%s,page=%d,size=%d",
-                    StrUtil.upperFirst(StrUtil.toCamelCase(config.getName())), hash, page, size);
-            return cache.remember(paginateCacheKey, config.getPaginateCacheTTL(), List.class,
-                    () -> this.paginate(criteria, page, size, config));
+            String paginateCacheKey = String.format("Paginate:%s:criteria=%s,page=%d,size=%d", StrUtil.upperFirst(StrUtil.toCamelCase(config.getName())), hash, page, size);
+            return cache.remember(paginateCacheKey, config.getPaginateCacheTTL(), List.class, () -> this.paginate(criteria, page, size, config));
         }
 
         return this.paginate(criteria, page, size, config);
@@ -400,8 +390,7 @@ public class DynamicCrudService {
      * @param <Dto>    DTO 类型
      * @return 分页结果
      */
-    public <Dto extends IdAccessor> Pagination<Dto> paginate(Map<String, Object> criteria, int page, int size,
-            CrudConfig<Object, Dto> config) {
+    public <Dto extends IdAccessor> Pagination<Dto> paginate(Map<String, Object> criteria, int page, int size, CrudConfig<Object, Dto> config) {
         long total = dynamicRepository.count(criteria, config.getEntityType());
         if (total == 0) {
             return Pagination.of(page, size, 0, List.of());
@@ -420,8 +409,7 @@ public class DynamicCrudService {
      * @return 键集分页结果
      */
     public <Dto extends IdAccessor> KeysetPagination<Dto> keysetPaginate(String configName, BaseKeysetQuery query) {
-        return keysetPaginate(configName, query.toMap(), Long.valueOf(query.getCursor().toString()), query.getLimit(),
-                query.isAscending(), query.isNext());
+        return keysetPaginate(configName, query.toMap(), Long.valueOf(query.getCursor().toString()), query.getLimit(), query.isAscending(), query.isNext());
     }
 
     /***
@@ -436,16 +424,13 @@ public class DynamicCrudService {
      * @param <Dto>      DTO 类型
      * @return 键集分页结果
      */
-    public <Dto extends IdAccessor> KeysetPagination<Dto> keysetPaginate(String configName,
-            Map<String, Object> criteria, Long id, int limit, boolean ascending, boolean isNext) {
+    public <Dto extends IdAccessor> KeysetPagination<Dto> keysetPaginate(String configName, Map<String, Object> criteria, Long id, int limit, boolean ascending, boolean isNext) {
         CrudConfig<Object, Dto> config = getConfig(configName);
 
         if (config.isEnableKetsetPaginateCache()) {
             String hash = generateCriteriaHash(criteria, id, limit, ascending, isNext);
-            String keysetPaginateCacheKey = String.format("KeysetPaginate:%s:criteria=%s",
-                    StrUtil.upperFirst(StrUtil.toCamelCase(config.getName())), hash);
-            return cache.remember(keysetPaginateCacheKey, config.getKeysetPaginateCacheTTL(), KeysetPagination.class,
-                    () -> this.keysetPaginate(criteria, id, limit, ascending, isNext, config));
+            String keysetPaginateCacheKey = String.format("KeysetPaginate:%s:criteria=%s", StrUtil.upperFirst(StrUtil.toCamelCase(config.getName())), hash);
+            return cache.remember(keysetPaginateCacheKey, config.getKeysetPaginateCacheTTL(), KeysetPagination.class, () -> this.keysetPaginate(criteria, id, limit, ascending, isNext, config));
         }
 
         return this.keysetPaginate(criteria, id, limit, ascending, isNext, config);
@@ -463,10 +448,8 @@ public class DynamicCrudService {
      * @param <Dto>     DTO 类型
      * @return 键集分页结果
      */
-    private <Dto extends IdAccessor> KeysetPagination<Dto> keysetPaginate(Map<String, Object> criteria, Long id,
-            int limit, boolean ascending, boolean isNext, CrudConfig<Object, Dto> config) {
-        List<Object> entities = dynamicRepository.keysetSearch(criteria, ascending ? Ascending.ASC : Ascending.DESC,
-                isNext ? Direction.NEXT : Direction.PREV, id, limit, config.getEntityType());
+    private <Dto extends IdAccessor> KeysetPagination<Dto> keysetPaginate(Map<String, Object> criteria, Long id, int limit, boolean ascending, boolean isNext, CrudConfig<Object, Dto> config) {
+        List<Object> entities = dynamicRepository.keysetSearch(criteria, ascending ? Ascending.ASC : Ascending.DESC, isNext ? Direction.NEXT : Direction.PREV, id, limit, config.getEntityType());
 
         if (entities == null || entities.isEmpty()) {
             return KeysetPagination.empty();
@@ -474,8 +457,7 @@ public class DynamicCrudService {
 
         List<Dto> items = mapEntitiesToDtos(entities, config);
 
-        return KeysetPagination.of(items, items.get(items.size() - 1).getId().toString(),
-                items.get(0).getId().toString());
+        return KeysetPagination.of(items, items.get(items.size() - 1).getId().toString(), items.get(0).getId().toString());
     }
 
     /***
@@ -494,10 +476,8 @@ public class DynamicCrudService {
 
         if (config.isEnableKeyValueCache()) {
             String hash = generateCriteriaHash(criteria);
-            String keyValueCacheKey = String.format("KeyValue:%s:criteria=%s,limit=%d",
-                    StrUtil.upperFirst(StrUtil.toCamelCase(config.getName())), hash, limit);
-            return cache.remember(keyValueCacheKey, config.getKeyValueCacheTTL(), List.class,
-                    () -> this.fetchKeyValues(configName, criteria, limit, config));
+            String keyValueCacheKey = String.format("KeyValue:%s:criteria=%s,limit=%d", StrUtil.upperFirst(StrUtil.toCamelCase(config.getName())), hash, limit);
+            return cache.remember(keyValueCacheKey, config.getKeyValueCacheTTL(), List.class, () -> this.fetchKeyValues(configName, criteria, limit, config));
         }
 
         return this.fetchKeyValues(configName, criteria, limit, config);
@@ -512,8 +492,7 @@ public class DynamicCrudService {
      * @param config     CRUD 配置
      * @return 键值对列表
      */
-    public List<KeyValue> fetchKeyValues(String configName, Map<String, Object> criteria, int limit,
-            CrudConfig<?, ?> config) {
+    public List<KeyValue> fetchKeyValues(String configName, Map<String, Object> criteria, int limit, CrudConfig<?, ?> config) {
         List<Object> entities = dynamicRepository.search(criteria, limit, 0, config.getEntityType());
         if (entities == null || entities.isEmpty()) {
             return List.of();
@@ -563,17 +542,10 @@ public class DynamicCrudService {
     private void publishEvent(CrudConfig<?, ?> config, String eventType, String aggregateId, Object payloadMap) {
         try {
             String payloadJson = OBJECT_MAPPER.writeValueAsString(payloadMap);
-            DynamicIntegrationEvent event = DynamicIntegrationEvent.builder()
-                    .aggregateType(config.getName())
-                    .aggregateId(aggregateId)
-                    .eventType(eventType)
-                    .payload(payloadJson)
-                    .occurredAt(LocalDateTime.now())
-                    .build();
+            DynamicIntegrationEvent event = DynamicIntegrationEvent.builder().aggregateType(config.getName()).aggregateId(aggregateId).eventType(eventType).payload(payloadJson).occurredAt(LocalDateTime.now()).build();
             eventPublisher.publish(event);
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize payload for event publishing. Aggregate: {}, ID: {}", config.getName(),
-                    aggregateId, e);
+            log.error("Failed to serialize payload for event publishing. Aggregate: {}, ID: {}", config.getName(), aggregateId, e);
         }
     }
 
@@ -593,8 +565,7 @@ public class DynamicCrudService {
         }
     }
 
-    private <Dto extends IdAccessor> List<Dto> mapEntitiesToDtos(List<Object> entities,
-            CrudConfig<Object, Dto> config) {
+    private <Dto extends IdAccessor> List<Dto> mapEntitiesToDtos(List<Object> entities, CrudConfig<Object, Dto> config) {
         return entities.stream().map(entity -> mapEntityToDto(entity, config)).collect(Collectors.toList());
     }
 
