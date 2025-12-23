@@ -55,12 +55,9 @@ public class DynamicCrudService {
 
     private final EventPublisher eventPublisher;
 
-    private final ICache cache;
+    private final Cache cache;
 
     private final DynamicCrudConfigRegistry configRegistry;
-
-    // Cache Snowflake instance for performance
-    private final Snowflake snowflake = IdUtil.getSnowflake();
 
     /**
      * 根据 ID 查找模型并映射为 DTO
@@ -112,7 +109,7 @@ public class DynamicCrudService {
      */
     @Transactional
     public long create(String configName, Map<String, Object> data) {
-        long id = snowflake.nextId();
+        long id = IdGenerator.nextId();
         data.put("id", id);
 
         var config = getConfig(configName);
@@ -132,8 +129,9 @@ public class DynamicCrudService {
             throw new BadRequestException("添加" + config.getTitle() + "失败");
         }
 
+        // 伪事件发布
         if (config.isPublishEvents()) {
-            publishEvent(config, EVENT_CREATED, String.valueOf(id), data);
+            publishEvent(config, EVENT_CREATED, String.valueOf(id), entity);
         }
 
         return id;
@@ -149,7 +147,7 @@ public class DynamicCrudService {
      */
     @Transactional
     public <Cmd extends DynamicCommand> long create(String configName, Cmd command) {
-        long id = snowflake.nextId();
+        long id = IdGenerator.nextId();
         command.setId(id);
 
         var config = getConfig(configName);
@@ -158,7 +156,7 @@ public class DynamicCrudService {
         if (config.getCreateCommandToEntity() == null) {
             entity = modelMapper.map(command, config.getEntityType());
         } else {
-            @SuppressWarnings("unchecked") ICreateCommandToEntity<Cmd, Object> converter = (ICreateCommandToEntity<Cmd, Object>) config.getCreateCommandToEntity();
+            @SuppressWarnings("unchecked") CreateCommandToEntity<Cmd, Object> converter = (CreateCommandToEntity<Cmd, Object>) config.getCreateCommandToEntity();
             entity = converter.toEntity(command);
         }
 
@@ -170,8 +168,9 @@ public class DynamicCrudService {
             throw new BadRequestException("添加" + config.getTitle() + "失败");
         }
 
+        // 伪事件发布
         if (config.isPublishEvents()) {
-            publishEvent(config, EVENT_CREATED, String.valueOf(id), command);
+            publishEvent(config, EVENT_CREATED, String.valueOf(id), entity);
         }
 
         return id;
@@ -209,8 +208,9 @@ public class DynamicCrudService {
             throw new BadRequestException("修改" + config.getTitle() + "失败");
         }
 
+        // 伪事件发布
         if (config.isPublishEvents()) {
-            publishEvent(config, EVENT_MODIFIED, String.valueOf(id), data);
+            publishEvent(config, EVENT_MODIFIED, String.valueOf(id), entity);
         }
     }
 
@@ -234,7 +234,7 @@ public class DynamicCrudService {
         if (config.getModifyCommandToEntity() == null) {
             modelMapper.map(command, entity);
         } else {
-            @SuppressWarnings("unchecked") IModifyCommandToEntity<Cmd, Object> converter = (IModifyCommandToEntity<Cmd, Object>) config.getModifyCommandToEntity();
+            @SuppressWarnings("unchecked") ModifyCommandToEntity<Cmd, Object> converter = (ModifyCommandToEntity<Cmd, Object>) config.getModifyCommandToEntity();
             converter.updateEntity(command, entity);
         }
 
@@ -242,8 +242,9 @@ public class DynamicCrudService {
             throw new BadRequestException("修改" + config.getTitle() + "失败");
         }
 
+        // 伪事件发布
         if (config.isPublishEvents()) {
-            publishEvent(config, EVENT_MODIFIED, String.valueOf(id), command);
+            publishEvent(config, EVENT_MODIFIED, String.valueOf(id), entity);
         }
     }
 
@@ -268,6 +269,7 @@ public class DynamicCrudService {
             cache.remove(key);
         }
 
+        // 伪事件发布
         if (config.isPublishEvents()) {
             publishEvent(config, config.isSoftDelete() ? EVENT_SOFT_DELETED : EVENT_DELETED, String.valueOf(id), Map.of("id", id));
         }
@@ -576,7 +578,7 @@ public class DynamicCrudService {
             return (Dto) entity;
         }
 
-        IEntityToDto<Object, Dto> entityToDto = config.getEntityToDto();
+        EntityToDto<Object, Dto> entityToDto = config.getEntityToDto();
 
         // 使用转换器进行转换
         if (entityToDto != null) {
@@ -611,6 +613,7 @@ public class DynamicCrudService {
             return aggregateType;
         }
 
+        @Override
         public String payload() {
             return payload;
         }

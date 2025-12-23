@@ -1,6 +1,13 @@
 package com.mayanshe.nosocomiumonline.domain.kernel.base;
 
-import com.mayanshe.nosocomiumonline.domain.kernel.eventing.DomainEvent;
+import com.mayanshe.nosocomiumonline.shared.event.DomainEvent;
+import com.mayanshe.nosocomiumonline.shared.event.DomainEventCollector;
+import com.mayanshe.nosocomiumonline.shared.valueobject.AggregateId;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,35 +16,18 @@ import java.util.List;
  * AggregateRoot: 聚合根基类
  * <p>
  * 支持捕获领域事件。
+ * 
+ * @author zhangxihai
  */
+@Data
+@SuperBuilder(toBuilder = true)
+@AllArgsConstructor
+@NoArgsConstructor
 public abstract class AggregateRoot {
 
-    private final List<DomainEvent> domainEvents = new ArrayList<>();
+    private AggregateId id;
 
-    /**
-     * 注册一个新的领域事件
-     *
-     * @param event 要注册的领域事件
-     */
     protected void registerEvent(DomainEvent event) {
-        if (event != null) {
-            this.domainEvents.add(event);
-        }
-    }
-
-    /**
-     * 清除注册的领域事件
-     */
-    public void clearDomainEvents() {
-        this.domainEvents.clear();
-    }
-
-    /**
-     * 获取已注册的领域事件列表
-     *
-     * @return 不可修改的领域事件列表
-     */
-    public List<DomainEvent> getDomainEvents() {
-        return Collections.unmodifiableList(this.domainEvents);
+        DomainEventCollector.collect(event);
     }
 }

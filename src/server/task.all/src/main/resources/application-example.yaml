@@ -1,0 +1,49 @@
+snowflake:
+  worker-id: 4
+  datacenter-id: 0
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
+  datasource:
+    url: jdbc:mysql://localhost:3306/nosocomium-online?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      database: 0
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+mybatis:
+  mapper-locations:
+    - classpath*:mapper/*.xml
+    - classpath*:com/mayanshe/scrmstd/infrastructure/mapper/*.xml
+  type-aliases-package: com.mayanshe.nosocomiumonline.infrastructure.persistence.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    lazy-loading-enabled: false
+    aggressive-lazy-loading: false
+
+storage:
+  cos:
+    provider: tencent
+    uid: 1252003980
+    secret-id: AKIDiHdnodFdqpeMvIRM4as0vc5KL9l9IFza
+    secret-key: SgibJqCON8g4Tkqutt7WmriMp7B1e4GF
+    region: ap-beijing
+    bucket-private: nosocomium-private-1252003980
+    bucket-public: nosocomium-online-1252003980
+    cdn-domain:
+    duration-seconds: 3600

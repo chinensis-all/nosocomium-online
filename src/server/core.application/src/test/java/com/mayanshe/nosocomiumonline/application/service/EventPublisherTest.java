@@ -62,6 +62,11 @@ public class EventPublisherTest {
             }
 
             @Override
+            public String payload() {
+                return null;
+            }
+
+            @Override
             public LocalDateTime occurredAt() {
                 return LocalDateTime.now();
             }
@@ -96,6 +101,11 @@ public class EventPublisherTest {
             @Override
             public LocalDateTime occurredAt() {
                 return LocalDateTime.now();
+            }
+
+            @Override
+            public String payload() {
+                return "{}";
             }
         };
         List<IntegrationEvent> events = Collections.singletonList(event);

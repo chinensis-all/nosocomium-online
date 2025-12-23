@@ -1,5 +1,7 @@
 package com.mayanshe.nosocomiumonline.shared.cqrs;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 /**
  * 命令总线接口。
  * 负责分发命令到对应的处理器。

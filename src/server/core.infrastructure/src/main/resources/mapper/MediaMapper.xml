@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mayanshe.nosocomiumonline.infrastructure.persistence.mapper.MediaMapper">
+    <!-- 媒体资源(medias)Mapper -->
+
+    <insert id="insert" parameterType="MediaEntity" useGeneratedKeys="false">
+        INSERT INTO medias (id,
+                            bucket_type,
+                            media_type,
+                            md5,
+                            object_key,
+                            size_bytes,
+                            content_type,
+                            title,
+                            description)
+        VALUES (#{id},
+                #{bucketType},
+                #{mediaType},
+                #{md5},
+                #{objectKey},
+                #{sizeBytes},
+                #{contentType},
+                #{title},
+                #{description})
+    </insert>
+
+    <update id="update" parameterType="MediaEntity">
+        UPDATE medias
+        SET title       = #{title},
+            description = #{description}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        <if test="id != null and id > 0">
+            DELETE FROM medias
+            WHERE id = #{id}
+        </if>
+    </delete>
+
+    <select id="selectById" resultType="MediaEntity">
+        SELECT *
+        FROM medias
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByMd5" resultType="MediaEntity">
+        SELECT *
+        FROM medias
+        WHERE md5 = #{md5}
+        LIMIT 1
+    </select>
+
+    <select id="existsByMd5">
+        SELECT COUNT(1)
+        FROM medias
+        WHERE md5 = #{md5}
+    </select>
+
+    <sql id="condition">
+        <where>
+            <if test="criteria != null and criteria.id != null and criteria.id > 0">
+                AND id = #{criteria.id}
+            </if>
+            <if test="criteria != null and criteria.bucketType != null">
+                AND bucket_type = #{criteria.bucketType}
+            </if>
+            <if test="criteria != null and criteria.mediaType != null">
+                AND media_type = #{criteria.mediaType}
+            </if>
+            <if test="criteria != null and criteria.md5 != null and criteria.md5 != ''">
+                AND md5 = #{criteria.md5}
+            </if>
+            <if test="criteria != null and criteria.objectKey != null and criteria.objectKey != ''">
+                AND object_key = #{criteria.objectKey}
+            </if>
+            <if test="criteria != null and criteria.keywords != null and criteria.keywords != ''">
+                AND (title LIKE CONCAT('%', #{criteria.keywords}, '%') OR description LIKE CONCAT('%', #{criteria.keywords}, '%'))
+            </if>
+        </where>
+    </sql>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1) FROM medias
+        <include refid="condition"/>
+    </select>
+
+    <select id="search" resultType="MediaEntity">
+        SELECT *
+        FROM medias
+        <include refid="condition"/>
+        ORDER BY id DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{offset}, #{limit}
+        </if>
+        <if test="offset == null and limit != null">
+            LIMIT #{limit}
+        </if>
+        <if test="offset != null and limit == null">
+            LIMIT #{offset}, 100
+        </if>
+    </select>
+</mapper>

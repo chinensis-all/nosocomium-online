@@ -1,14 +1,11 @@
 package com.mayanshe.nosocomiumonline.application.dynamic;
 
-import com.mayanshe.nosocomiumonline.shared.contract.ICreateCommandToEntity;
-import com.mayanshe.nosocomiumonline.shared.contract.IEntityToDto;
-import com.mayanshe.nosocomiumonline.shared.contract.IMapToEntity;
-import com.mayanshe.nosocomiumonline.shared.contract.IModifyCommandToEntity;
-import com.mayanshe.nosocomiumonline.shared.valueobject.KeysetPagination;
+import com.mayanshe.nosocomiumonline.shared.contract.CreateCommandToEntity;
+import com.mayanshe.nosocomiumonline.shared.contract.EntityToDto;
+import com.mayanshe.nosocomiumonline.shared.contract.MapToEntity;
+import com.mayanshe.nosocomiumonline.shared.contract.ModifyCommandToEntity;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.lang.reflect.Type;
 
 /**
  * 动态CRUD服务配置
@@ -26,13 +23,13 @@ public class CrudConfig<E, D> {
 
     private final Class<D> dtoType;                                        // DTO类型
 
-    private final IEntityToDto<E, D> entityToDto;                          // Entity到DTO的转换器
+    private final EntityToDto<E, D> entityToDto;                          // Entity到DTO的转换器
 
-    private final IMapToEntity<E> mapToEntity;                             // Map到Entity的转换器
+    private final MapToEntity<E> mapToEntity;                             // Map到Entity的转换器
 
-    private final ICreateCommandToEntity<?, E> createCommandToEntity;      // 创建Command到Entity的转换器
+    private final CreateCommandToEntity<?, E> createCommandToEntity;      // 创建Command到Entity的转换器
 
-    private final IModifyCommandToEntity<?, E> modifyCommandToEntity;      // 修改Command到Entity的转换器
+    private final ModifyCommandToEntity<?, E> modifyCommandToEntity;      // 修改Command到Entity的转换器
 
     @Builder.Default
     private final boolean publishEvents = true;                            // 是否发布事件

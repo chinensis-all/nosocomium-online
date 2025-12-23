@@ -1,0 +1,215 @@
+{
+  "名称": "DDD_CQRS_DynamicCrud_媒体存储系统_Agent",
+  "工具": "Antigratity",
+  "沟通语言": "中文",
+  "总体目标": "在严格的 DDD 分层 + CQRS + DynamicCrudService 架构下，实现一套可替换对象存储的媒体管理系统，当前基于腾讯云 COS，支持双桶策略、CDN、媒体分类上传、Boss 管理端，并具备完整测试。",
+  "总体架构": {
+    "模式": "DDD 分层 + CQRS + DynamicCrudService（混合使用）",
+    "总体原则": [
+      "性能优先，优雅其次",
+      "接口与实现解耦，未来可无痛替换 COS 厂商",
+      "业务规则清晰优于技术炫技",
+      "全程使用中文（代码注释、README、异常信息除非必要不使用英文）"
+    ]
+  },
+  "项目结构": {
+    "根目录": "src/server",
+    "模块说明": [
+      {
+        "模块": "core.shared",
+        "职责": "跨项目共享模块，包含接口、基类、值对象、共享工具类，不依赖 Spring"
+      },
+      {
+        "模块": "core.domain",
+        "职责": "领域层，按限界上下文规划文件夹；技术支撑代码统一放在 kernel 子包"
+      },
+      {
+        "模块": "core.application",
+        "职责": "应用层，包含 DTO（Command/Query）、应用服务、CQRS Handler"
+      },
+      {
+        "模块": "core.infrastructure",
+        "职责": "基础设施层，包含腾讯云 COS 实现、Spring 配置、Repository 实现"
+      },
+      { "模块": "api.boss", "职责": "管理后台接口" },
+      { "模块": "api.patient", "职责": "患者端接口" },
+      { "模块": "api.doctor", "职责": "医生端接口" },
+      { "模块": "task.all", "职责": "任务模块（预留定时清理、补偿等）" }
+    ],
+    "固定目录约定": [
+      {
+        "模块": "core.application",
+        "目录": "dto",
+        "说明": "所有传输对象必须放在此处，包括 command 和 query（允许子目录）"
+      },
+      {
+        "模块": "core.application",
+        "目录": "service",
+        "说明": "应用服务"
+      },
+      {
+        "模块": "core.application",
+        "目录": "service/handler",
+        "说明": "所有 CommandHandler / QueryHandler 只能放在这里"
+      }
+    ],
+    "禁止事项": [
+      "不允许新增顶级模块",
+      "不允许改变既定目录结构",
+      "不允许在 domain 或 api 层直接依赖 COS SDK",
+      "不允许在 application 层直接 new COS 客户端",
+      "不允许引入第三方 CQRS 框架（Axon、MediatR 等）"
+    ]
+  },
+  "关键业务决策（已确认）": {
+    "私有桶是否走 CDN": "B：私有桶必须走 CDN（即：私有写 + 私有读 + CDN 回源签名策略）",
+    "MD5 去重策略": "A：同 md5 已存在则直接复用已有 Media 记录，不重复上传",
+    "Boss 查询方式": "B：Boss 列表与详情使用 Query + QueryHandler（不使用 DynamicCrudService）"
+  },
+  "存储设计": {
+    "抽象接口": {
+      "位置": "core.shared.storage",
+      "接口": "ObjectStorageService",
+      "要求": [
+        "定义上传、删除、生成访问 URL 等能力",
+        "必须支持 BucketType 区分（私有/私有、私有/公有读）",
+        "不得暴露具体 COS SDK 类型"
+      ]
+    },
+    "桶类型": [
+      "PRIVATE_PRIVATE（私有写私有读）",
+      "PRIVATE_PUBLIC（私有写公有读）"
+    ],
+    "URL 生成规则": [
+      "如果配置了 cdnDomain，则 URL 必须以 cdnDomain 开头",
+      "私有桶：必须生成带有效期的签名 URL（走 CDN 回源签名）",
+      "公有读桶：直接拼接 CDN 域名或 COS 域名",
+      "禁止在应用层拼接 URL，必须由 ObjectStorageService 负责"
+    ]
+  },
+  "领域设计": {
+    "上下文": "media",
+    "位置": "core.domain.media",
+    "包含": [
+      "Media 实体（贫血模型即可）",
+      "MediaRepository 接口",
+      "必要的领域枚举（MediaType、BucketType）"
+    ]
+  },
+  "应用层设计": {
+    "Command": [
+      "UploadMediaCommand",
+      "UpdateMediaInfoCommand",
+      "DeleteMediaCommand"
+    ],
+    "Query": [
+      "GetMediaDetailQuery",
+      "PaginateMediasQuery（Boss 端分页）"
+    ],
+    "Handler": [
+      "UploadMediaCommandHandler",
+      "UpdateMediaInfoCommandHandler",
+      "DeleteMediaCommandHandler",
+      "GetMediaDetailQueryHandler",
+      "PaginateMediasQueryHandler"
+    ],
+    "异常要求": [
+      "所有用户态异常必须使用 INosocomiumException 体系",
+      "禁止直接抛 RuntimeException / IllegalArgumentException 给 Controller",
+      "异常信息必须中文、清晰、可读"
+    ]
+  },
+  "API 设计": {
+    "通用上传接口（三端都有）": {
+      "Controller": "MediaController",
+      "BasePath": "/medias",
+      "接口": [
+        "POST /images",
+        "POST /audios",
+        "POST /videos",
+        "POST /documents",
+        "POST /zips"
+      ],
+      "约束": [
+        "multipart/form-data",
+        "只允许上传对应类型文件",
+        "文件类型校验必须在应用层完成",
+        "返回 MediaDto（包含 id、url、md5、size、bucketType 等）"
+      ]
+    },
+    "Boss 管理接口": [
+      "GET /medias（分页）",
+      "GET /medias/{id}",
+      "PUT /medias/{id}（仅修改标题、描述）",
+      "DELETE /medias/{id}（必须同时删除 COS 对象）"
+    ]
+  },
+  "数据库设计": {
+    "文件": "doc/data/schema.sql",
+    "规则": [
+      "只允许追加，不允许修改或删除已有内容"
+    ],
+    "medias 表必须包含": [
+      "id",
+      "bucket_type",
+      "media_type",
+      "md5",
+      "object_key",
+      "size_bytes",
+      "content_type",
+      "title",
+      "description",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "配置要求": {
+    "文件": [
+      "api.boss/application-example.yaml",
+      "api.patient/application-example.yaml",
+      "api.doctor/application-example.yaml",
+      "task.all/application-example.yaml"
+    ],
+    "必须包含": [
+      "COS region",
+      "双桶配置",
+      "cdnDomain",
+      "签名有效期",
+      "示例 secretId / secretKey（仅示例）"
+    ]
+  },
+  "测试要求": {
+    "必须编写测试": true,
+    "测试类型": [
+      "CommandHandler 单元测试（mock ObjectStorageService）",
+      "QueryHandler 单元测试",
+      "COS URL 生成规则测试",
+      "MediaController Web 层测试"
+    ],
+    "测试原则": [
+      "不依赖真实 COS",
+      "不依赖外部网络",
+      "测试必须可重复、可预期"
+    ]
+  },
+  "对 Antigratity 的强约束": [
+    "请全程使用中文",
+    "备注应注尽注，关键逻辑必须写清楚注释",
+    "涉及用户态异常必须使用 INosocomiumException 体系",
+    "性能优先，优雅其次",
+    "不得擅自修改已确认的三项关键业务决策",
+    "不得自行引入新架构模式或新技术栈"
+  ],
+  "输出期望": {
+    "代码要求": "生产可用、结构清晰、性能导向",
+    "必须输出": [
+      "接口定义",
+      "腾讯云 COS 实现",
+      "CQRS Command / Query / Handler",
+      "Controller",
+      "schema.sql 追加内容",
+      "application-example.yaml 追加内容",
+      "完整测试代码"
+    ]
+  }
+}
