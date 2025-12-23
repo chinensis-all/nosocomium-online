@@ -7,21 +7,22 @@ spring:
   main:
     web-application-type: servlet
 
-
-storage:
-  cos:
-    secret-id: ${COS_SECRET_ID:AKIDxxxx}
-    secret-key: ${COS_SECRET_KEY:xxxx}
-    region: ${COS_REGION:ap-beijing}
-    bucket-private: ${COS_BUCKET_PRIVATE:private-bucket-1250000000}
-    bucket-public: ${COS_BUCKET_PUBLIC:public-bucket-1250000000}
-    cdn-domain: ${COS_CDN_DOMAIN:}
-    duration-seconds: 3600
-
 springdoc:
-  api-docs:
-    enabled: true
   swagger-ui:
-    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.mayanshe.nosocomiumonline.boss
 knife4j:
   enable: true
+  setting:
+    language: zh_cn
+  basic:
+    enable: true
+    username: magnus
+    password: 123456

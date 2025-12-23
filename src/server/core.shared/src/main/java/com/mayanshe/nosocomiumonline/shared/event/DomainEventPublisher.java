@@ -7,4 +7,6 @@ package com.mayanshe.nosocomiumonline.shared.event;
  */
 public interface DomainEventPublisher {
     void publish(DomainEvent event);
+
+    void publish(Iterable<? extends DomainEvent> events);
 }

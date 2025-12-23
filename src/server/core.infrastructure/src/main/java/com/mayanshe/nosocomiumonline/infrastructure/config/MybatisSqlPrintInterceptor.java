@@ -5,80 +5,81 @@ import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ParameterMapping;
+import org.apache.ibatis.mapping.ParameterMode;
 import org.apache.ibatis.plugin.*;
+import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.ResultHandler;
+import org.apache.ibatis.session.RowBounds;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.regex.Matcher;
 
 /**
  * MybatisSqlPrintInterceptor: MyBatis SQL 打印拦截器
+ *
+ * @author zhangxihai
  */
 @Intercepts({
-        @Signature(type = Executor.class, method = "query", args = {
-                MappedStatement.class, Object.class, org.apache.ibatis.session.RowBounds.class,
-                org.apache.ibatis.session.ResultHandler.class
-        }),
-        @Signature(type = Executor.class, method = "update", args = {
-                MappedStatement.class, Object.class
-        })
+        @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
+        @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class})
 })
+@Component
+@Profile({"dev", "test"})
 public class MybatisSqlPrintInterceptor implements Interceptor {
-
-    private static final long DEFAULT_LIMIT_MS = 15;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         long start = System.currentTimeMillis();
 
-        Object result = invocation.proceed();
-
-        long end = System.currentTimeMillis();
+        Object result = result = invocation.proceed();
+        String sql = "SQL_PARSE_ERROR";
 
         try {
             MappedStatement ms = (MappedStatement) invocation.getArgs()[0];
             Object parameter = invocation.getArgs()[1];
             BoundSql boundSql = ms.getBoundSql(parameter);
-            String sql = buildSql(ms.getConfiguration(), boundSql);
-
-            PrintUtils.print("SQL: {}", sql, start, DEFAULT_LIMIT_MS);
-        } catch (Exception ignored) {
+            sql = buildSql(ms.getConfiguration(), boundSql);
+        } catch (Exception e) {
+            PrintUtils.failedFmt("Failed to build SQL in MybatisSqlPrintInterceptor: {}", e.getMessage());
         }
+
+        PrintUtils.performance("SQL - {}", sql, start, 100);
 
         return result;
     }
 
     private String buildSql(Configuration configuration, BoundSql boundSql) {
-        String sql = boundSql.getSql().replaceAll("\\s+", " ");
-        List<ParameterMapping> mappings = boundSql.getParameterMappings();
         Object parameterObject = boundSql.getParameterObject();
+        List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
+        String sql = boundSql.getSql().replaceAll("\\s+", " ");
 
-        if (mappings == null || mappings.isEmpty()) {
+        if (parameterMappings == null || parameterMappings.isEmpty() || parameterObject == null) {
             return sql;
         }
 
-        for (ParameterMapping mapping : mappings) {
-            Object value;
-            String property = mapping.getProperty();
+        for (ParameterMapping mapping : parameterMappings) {
+            if (mapping.getMode() != ParameterMode.OUT) {
+                Object value;
+                String propertyName = mapping.getProperty();
+                if (boundSql.hasAdditionalParameter(propertyName)) {
+                    value = boundSql.getAdditionalParameter(propertyName);
+                } else if (configuration.getTypeHandlerRegistry().hasTypeHandler(parameterObject.getClass())) {
+                    value = parameterObject;
+                } else {
+                    MetaObject metaObject = configuration.newMetaObject(parameterObject);
+                    value = metaObject.getValue(propertyName);
+                }
 
-            if (boundSql.hasAdditionalParameter(property)) {
-                value = boundSql.getAdditionalParameter(property);
-            } else if (parameterObject == null) {
-                value = null;
-            } else if (configuration.getTypeHandlerRegistry().hasTypeHandler(parameterObject.getClass())) {
-                value = parameterObject;
-            } else {
-                value = org.apache.ibatis.reflection.MetaObject
-                        .forObject(parameterObject, configuration.getObjectFactory(),
-                                configuration.getObjectWrapperFactory(), configuration.getReflectorFactory())
-                        .getValue(property);
+                String formattedValue = Matcher.quoteReplacement(formatValue(value));
+                sql = sql.replaceFirst("\\?", formattedValue);
             }
-
-            sql = sql.replaceFirst("\\?", formatValue(value));
         }
-
         return sql;
     }
 
@@ -86,12 +87,15 @@ public class MybatisSqlPrintInterceptor implements Interceptor {
         if (value == null) {
             return "null";
         }
+
         if (value instanceof String) {
             return "'" + value + "'";
         }
+
         if (value instanceof Date) {
-            return "'" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format((Date) value) + "'";
+            return "'" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(value) + "'";
         }
+
         return value.toString();
     }
 
@@ -101,6 +105,5 @@ public class MybatisSqlPrintInterceptor implements Interceptor {
     }
 
     @Override
-    public void setProperties(Properties properties) {
-    }
+    public void setProperties(Properties properties) {}
 }

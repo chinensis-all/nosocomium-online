@@ -1,7 +1,7 @@
 package com.mayanshe.nosocomiumonline.infrastructure.cache;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mayanshe.nosocomiumonline.shared.contract.ICache;
+import com.mayanshe.nosocomiumonline.shared.contract.Cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -18,7 +18,7 @@ import java.util.function.Supplier;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class RedisCacheService implements ICache {
+public class RedisCacheService implements Cache {
 
     private static final String LOCK_SUFFIX = ":lock";
     private static final long LOCK_EXPIRE_SECONDS = 10;

@@ -5,6 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 格式化的响应结果
+ * @param <T>
+ */
 @Data
 @Builder
 @NoArgsConstructor

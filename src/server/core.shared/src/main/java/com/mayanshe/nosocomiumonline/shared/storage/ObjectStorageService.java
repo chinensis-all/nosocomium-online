@@ -4,7 +4,7 @@ import java.io.InputStream;
 import java.util.Map;
 
 /**
- * 对象存储服务接口。
+ * ObjectStorageService: 对象存储服务接口。
  * 屏蔽具体云厂商（如腾讯云 COS）的实现细节。
  */
 public interface ObjectStorageService {

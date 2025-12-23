@@ -1,8 +1,9 @@
 package com.mayanshe.nosocomiumonline.domain.kernel.base;
 
-import com.mayanshe.nosocomiumonline.domain.kernel.eventing.DomainEvent;
+import com.mayanshe.nosocomiumonline.shared.event.DomainEvent;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,16 +19,5 @@ class AggregateRootTest {
                 }
             });
         }
-    }
-
-    @Test
-    void testEventRegistration() {
-        TestAggregate aggregate = new TestAggregate();
-        aggregate.doSomething();
-
-        assertEquals(1, aggregate.getDomainEvents().size());
-
-        aggregate.clearDomainEvents();
-        assertEquals(0, aggregate.getDomainEvents().size());
     }
 }

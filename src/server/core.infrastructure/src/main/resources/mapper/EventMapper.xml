@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mayanshe.nosocomiumonline.infrastructure.persistence.mapper.OutboxMapper">
+    <insert id="insert" parameterType="OutboxEntity">
+        INSERT INTO _events
+        (id, aggregate_type, aggregate_id, event_type, payload, status, occurred_at, sent_at)
+        VALUES (#{id}, #{aggregateType}, #{aggregateId}, #{eventType}, #{payload}, #{status}, #{occurredAt}, #{sentAt})
+    </insert>
+
+    <update id="update" parameterType="OutboxEntity">
+        UPDATE _events
+        SET status      = #{status},
+            retry_count = #{retryCount},
+            sent_at     = #{sentAt}
+        WHERE id = #{id}
+    </update>
+
+    <select id="findUnsent" resultType="OutboxEntity">
+        SELECT id,
+               aggregate_type,
+               aggregate_id,
+               event_type,
+               payload,
+               status,
+               occurred_at,
+               sent_at,
+               retry_count
+        FROM _events
+        WHERE status = 'sending'
+        ORDER BY occurred_at
+        LIMIT #{limit}
+    </select>
+
+    <select id="markSending">
+        UPDATE _events
+        SET status = 'sending'
+        WHERE id = #{id}
+    </select>
+
+    <select id="markSent">
+        UPDATE _events
+        SET status = 'sent',
+            sent_at = #{sentAt}
+        WHERE id = #{id}
+    </select>
+
+    <select id="markFailed">
+        UPDATE _events
+        SET status = 'failed',
+            retry_count = retry_count + 1
+        WHERE id = #{id}
+    </select>
+</mapper>

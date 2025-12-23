@@ -1,17 +1,24 @@
 package com.mayanshe.nosocomiumonline.infrastructure.persistence.mapper;
 
 import com.mayanshe.nosocomiumonline.infrastructure.persistence.entity.MediaEntity;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import java.util.Optional;
 
-public interface MediaMapper {
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+@Mapper
+public interface MediaMapper extends PageMapper<MediaEntity> {
     int insert(MediaEntity entity);
 
-    int updateInfo(MediaEntity entity);
+    int update(MediaEntity entity);
 
-    MediaEntity selectById(@Param("id") Long id);
+    int deleteById(Long id);
 
-    MediaEntity selectByMd5(@Param("md5") String md5);
+    MediaEntity selectById(Long id);
 
-    int deleteById(@Param("id") Long id);
+    MediaEntity selectByMd5(String md5);
+
+    boolean existsByMd5(String md5);
 }

@@ -14,5 +14,5 @@ public class CosConfig {
     private String bucketPrivate;
     private String bucketPublic;
     private String cdnDomain;
-    private Integer durationSeconds = 1800;
+    private Integer durationSeconds = 3600;
 }

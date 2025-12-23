@@ -3,6 +3,7 @@ package com.mayanshe.nosocomiumonline.infrastructure.storage;
 import com.mayanshe.nosocomiumonline.shared.exception.InternalServerErrorException;
 import com.mayanshe.nosocomiumonline.shared.storage.BucketType;
 import com.mayanshe.nosocomiumonline.shared.storage.ObjectStorageService;
+import com.mayanshe.nosocomiumonline.shared.util.PrintUtils;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;

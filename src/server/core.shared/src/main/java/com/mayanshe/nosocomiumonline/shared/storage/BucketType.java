@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 存储桶类型。
+ * BucketType: 存储桶类型。
  * 决定了文件的访问权限和 URL 生成策略。
  */
 @Getter
@@ -23,5 +23,15 @@ public enum BucketType {
     PUBLIC("public", false);
 
     private final String code;
+
     private final boolean isPrivate;
+
+    public static BucketType of(String code) {
+        for (BucketType type : BucketType.values()) {
+            if (type.getCode().equals(code)) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException("Unknown BucketType code: " + code);
+    }
 }

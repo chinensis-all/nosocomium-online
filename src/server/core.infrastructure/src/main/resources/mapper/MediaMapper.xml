@@ -1,57 +1,103 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.mayanshe.nosocomiumonline.infrastructure.persistence.mapper.MediaMapper">
+    <!-- 媒体资源(medias)Mapper -->
 
-    <resultMap id="BaseResultMap" type="com.mayanshe.nosocomiumonline.infrastructure.persistence.entity.MediaEntity">
-        <id column="id" property="id" jdbcType="BIGINT"/>
-        <result column="bucket_type" property="bucketType" jdbcType="VARCHAR"/>
-        <result column="media_type" property="mediaType" jdbcType="VARCHAR"/>
-        <result column="md5" property="md5" jdbcType="VARCHAR"/>
-        <result column="object_key" property="objectKey" jdbcType="VARCHAR"/>
-        <result column="size_bytes" property="sizeBytes" jdbcType="BIGINT"/>
-        <result column="content_type" property="contentType" jdbcType="VARCHAR"/>
-        <result column="title" property="title" jdbcType="VARCHAR"/>
-        <result column="description" property="description" jdbcType="VARCHAR"/>
-        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
-        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        id, bucket_type, media_type, md5, object_key, size_bytes, content_type, title, description, created_at, updated_at
-    </sql>
-
-    <insert id="insert" parameterType="com.mayanshe.nosocomiumonline.infrastructure.persistence.entity.MediaEntity" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO medias (
-            bucket_type, media_type, md5, object_key, size_bytes, content_type, title, description, created_at, updated_at
-        ) VALUES (
-            #{bucketType}, #{mediaType}, #{md5}, #{objectKey}, #{sizeBytes}, #{contentType}, #{title}, #{description}, #{createdAt}, #{updatedAt}
-        )
+    <insert id="insert" parameterType="MediaEntity" useGeneratedKeys="false">
+        INSERT INTO medias (id,
+                            bucket_type,
+                            media_type,
+                            md5,
+                            object_key,
+                            size_bytes,
+                            content_type,
+                            title,
+                            description)
+        VALUES (#{id},
+                #{bucketType},
+                #{mediaType},
+                #{md5},
+                #{objectKey},
+                #{sizeBytes},
+                #{contentType},
+                #{title},
+                #{description})
     </insert>
 
-    <update id="updateInfo" parameterType="com.mayanshe.nosocomiumonline.infrastructure.persistence.entity.MediaEntity">
+    <update id="update" parameterType="MediaEntity">
         UPDATE medias
-        SET title = #{title},
-            description = #{description},
-            updated_at = #{updatedAt}
+        SET title       = #{title},
+            description = #{description}
         WHERE id = #{id}
     </update>
 
-    <select id="selectById" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
+    <delete id="deleteById">
+        <if test="id != null and id > 0">
+            DELETE FROM medias
+            WHERE id = #{id}
+        </if>
+    </delete>
+
+    <select id="selectById" resultType="MediaEntity">
+        SELECT *
         FROM medias
         WHERE id = #{id}
     </select>
 
-    <select id="selectByMd5" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
+    <select id="selectByMd5" resultType="MediaEntity">
+        SELECT *
         FROM medias
         WHERE md5 = #{md5}
         LIMIT 1
     </select>
 
-    <delete id="deleteById">
-        DELETE FROM medias
-        WHERE id = #{id}
-    </delete>
+    <select id="existsByMd5">
+        SELECT COUNT(1)
+        FROM medias
+        WHERE md5 = #{md5}
+    </select>
 
+    <sql id="condition">
+        <where>
+            <if test="criteria != null and criteria.id != null and criteria.id > 0">
+                AND id = #{criteria.id}
+            </if>
+            <if test="criteria != null and criteria.bucketType != null">
+                AND bucket_type = #{criteria.bucketType}
+            </if>
+            <if test="criteria != null and criteria.mediaType != null">
+                AND media_type = #{criteria.mediaType}
+            </if>
+            <if test="criteria != null and criteria.md5 != null and criteria.md5 != ''">
+                AND md5 = #{criteria.md5}
+            </if>
+            <if test="criteria != null and criteria.objectKey != null and criteria.objectKey != ''">
+                AND object_key = #{criteria.objectKey}
+            </if>
+            <if test="criteria != null and criteria.keywords != null and criteria.keywords != ''">
+                AND (title LIKE CONCAT('%', #{criteria.keywords}, '%') OR description LIKE CONCAT('%', #{criteria.keywords}, '%'))
+            </if>
+        </where>
+    </sql>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1) FROM medias
+        <include refid="condition"/>
+    </select>
+
+    <select id="search" resultType="MediaEntity">
+        SELECT *
+        FROM medias
+        <include refid="condition"/>
+        ORDER BY id DESC
+        <if test="offset != null and limit != null">
+            LIMIT #{offset}, #{limit}
+        </if>
+        <if test="offset == null and limit != null">
+            LIMIT #{limit}
+        </if>
+        <if test="offset != null and limit == null">
+            LIMIT #{offset}, 100
+        </if>
+    </select>
 </mapper>
