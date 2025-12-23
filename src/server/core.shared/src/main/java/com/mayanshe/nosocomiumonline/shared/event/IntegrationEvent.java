@@ -1,5 +1,7 @@
 package com.mayanshe.nosocomiumonline.shared.event;
 
+import lombok.Data;
+
 import java.time.LocalDateTime;
 
 /**
@@ -26,6 +28,11 @@ public interface IntegrationEvent {
      * 事件关联的聚合根ID (e.g. "patient-12345").
      */
     String aggregateId();
+
+    /**
+     * 事件负载，JSON字符串格式。
+     */
+    String payload();
 
     /**
      * 事件发生时间

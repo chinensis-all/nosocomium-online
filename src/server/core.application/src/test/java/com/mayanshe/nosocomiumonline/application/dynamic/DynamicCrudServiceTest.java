@@ -1,9 +1,7 @@
 package com.mayanshe.nosocomiumonline.application.dynamic;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mayanshe.nosocomiumonline.application.messaging.EventPublisher;
-import com.mayanshe.nosocomiumonline.shared.contract.ICache;
+import com.mayanshe.nosocomiumonline.shared.contract.Cache;
 import com.mayanshe.nosocomiumonline.shared.event.IntegrationEvent;
 import com.mayanshe.nosocomiumonline.shared.contract.IdAccessor;
 import lombok.Getter;
@@ -11,7 +9,6 @@ import lombok.Setter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -39,7 +36,7 @@ class DynamicCrudServiceTest {
     private EventPublisher eventPublisher;
 
     @Mock
-    private ICache cache;
+    private Cache cache;
 
     @Mock
     private DynamicCrudConfigRegistry configRegistry;

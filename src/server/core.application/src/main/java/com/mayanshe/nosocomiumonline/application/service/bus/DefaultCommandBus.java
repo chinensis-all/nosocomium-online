@@ -1,5 +1,6 @@
 package com.mayanshe.nosocomiumonline.application.service.bus;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mayanshe.nosocomiumonline.shared.cqrs.Command;
 import com.mayanshe.nosocomiumonline.shared.cqrs.CommandBus;
 import com.mayanshe.nosocomiumonline.shared.cqrs.CommandHandler;
