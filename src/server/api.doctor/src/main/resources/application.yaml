@@ -17,7 +17,7 @@ springdoc:
   group-configs:
     - group: 'default'
       paths-to-match: '/**'
-      packages-to-scan: com.mayanshe.nosocomiumonline.boss
+      packages-to-scan: com.mayanshe.nosocomiumonline.doctor
 knife4j:
   enable: true
   setting:
