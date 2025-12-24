@@ -1,6 +1,5 @@
-CREATE DATABASE IF NOT EXISTS `nosocomium-online` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `nosocomium-online`;
-SET NAMES utf8mb4;
+-- Cleaned up for H2
+SET MODE MySQL;
 
 -- 可靠事件传递
 CREATE TABLE IF NOT EXISTS `_events`
@@ -9,8 +8,8 @@ CREATE TABLE IF NOT EXISTS `_events`
     `aggregate_type` VARCHAR(64)                               NOT NULL COMMENT '聚合类型',
     `aggregate_id`   VARCHAR(64)                               NOT NULL COMMENT '聚合ID',
     `event_type`     VARCHAR(128)                              NOT NULL COMMENT '事件类型',
-    `payload`        JSON                                      NOT NULL COMMENT '事件负载',
-    `status`         ENUM ('new', 'sending', 'sent', 'failed') NOT NULL DEFAULT 'new' COMMENT '事件状态 (new, sending, sent, failed)',
+    `payload`        TEXT                                      NOT NULL COMMENT '事件负载',
+    `status`         VARCHAR(20)                               NOT NULL DEFAULT 'new' COMMENT '事件状态 (new, sending, sent, failed)',
     `retry_count`    INT                                       NOT NULL DEFAULT 0 COMMENT '重试次数',
     `occurred_at`    DATETIME(6)                               NOT NULL COMMENT '事件发生时间',
     `sent_at`        DATETIME(6)                               NOT NULL COMMENT '发送时间',
