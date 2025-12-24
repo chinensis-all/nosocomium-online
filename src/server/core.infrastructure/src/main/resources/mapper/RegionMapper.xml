@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mayanshe.nosocomiumonline.infrastructure.persistence.mapper.RegionMapper">
+    <!-- 行政区划(regions)Mapper -->
+
+    <select id="search" resultType="com.mayanshe.nosocomiumonline.application.dto.RegionDto">
+        select * from regions
+        <where>
+            <if test="parentId != null">
+                and parent_id = #{parentId}
+            </if>
+            <if test="keywords != null and keywords != ''">
+                and (postalCode like concat('%', #{keywords}, '%')
+                or areaCode like concat('%', #{keywords}, '%')
+                or regionName like concat('%', #{keywords}, '%')
+                or namePinyin like concat('%', #{keywords}, '%')
+                or shortName like concat('%', #{keywords}, '%')
+                )
+            </if>
+        </where>
+    </select>
+</mapper>

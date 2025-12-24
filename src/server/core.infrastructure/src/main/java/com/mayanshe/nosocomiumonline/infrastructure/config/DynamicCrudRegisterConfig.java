@@ -5,6 +5,11 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * DynamicCrudRegisterConfig: 动态 CRUD 配置注册类。
+ *
+ * @author zhangxihai
+ */
 @Configuration
 @RequiredArgsConstructor
 public class DynamicCrudRegisterConfig {
